@@ -1,0 +1,44 @@
+[
+  {
+    "id": "horno-industrial-frontal",
+    "name": "Horno industrial premium",
+    "category": "Hornos",
+    "description": "Equipo industrial de alta eficiencia para panadería, restaurantes y producción alimentaria.",
+    "image": "/products/horno-industrial-frontal.jpg"
+  },
+  {
+    "id": "horno-doble-industrial",
+    "name": "Horno doble industrial",
+    "category": "Hornos",
+    "description": "Horno de doble cámara con controles independientes para alta producción.",
+    "image": "/products/horno-doble-industrial.jpg"
+  },
+  {
+    "id": "horno-modular-varias-camaras",
+    "name": "Horno modular de varias cámaras",
+    "category": "Hornos",
+    "description": "Sistema modular para panificación con capacidad escalable y control técnico.",
+    "image": "/products/horno-modular-varias-camaras.jpg"
+  },
+  {
+    "id": "laminadora-industrial-metalica",
+    "name": "Laminadora industrial metálica",
+    "category": "Laminadoras",
+    "description": "Equipo robusto para procesos continuos de panadería y pastelería.",
+    "image": "/products/laminadora-industrial-metalica.jpg"
+  },
+  {
+    "id": "laminadora-masa-blanca",
+    "name": "Laminadora de masa blanca",
+    "category": "Laminadoras",
+    "description": "Laminadora compacta para producción diaria de masas.",
+    "image": "/products/laminadora-masa-blanca.jpg"
+  },
+  {
+    "id": "laminadora-sobre-pallet",
+    "name": "Laminadora sobre pallet",
+    "category": "Laminadoras",
+    "description": "Laminadora industrial lista para despacho, montaje e instalación.",
+    "image": "/products/laminadora-sobre-pallet.jpg"
+  }
+]

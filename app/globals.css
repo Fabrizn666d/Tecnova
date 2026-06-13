@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+@theme {
+  --color-tecnova-red: #b11226;
+  --color-tecnova-dark: #111111;
+  --color-tecnova-steel: #6b7280;
+  --color-tecnova-soft: #f4f4f4;
+  --color-tecnova-line: #e5e7eb;
+
+  --shadow-soft: 0 18px 45px rgba(17, 17, 17, 0.08);
+  --shadow-lift: 0 28px 80px rgba(17, 17, 17, 0.16);
+
+  --radius-mega: 36px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  overflow-x: clip;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  overflow-x: clip;
+  background: #f4f4f4;
+  color: #111111;
+  font-family: var(--font-inter), sans-serif;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-space-grotesk), sans-serif;
+  letter-spacing: -0.045em;
+}
+
+img {
+  display: block;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+::selection {
+  background: #b11226;
+  color: white;
+}
