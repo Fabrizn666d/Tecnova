@@ -16,15 +16,28 @@ const fallbackSettings = {
   logo_footer: "/logo.png",
   favicon: "/favicon.ico",
   libro_imagen: "",
+  nosotros_titulo: "Experiencia técnica para producción industrial",
+  nosotros_subtitulo: "Tecnova Perú acompaña a empresas que necesitan equipos confiables, repuestos compatibles y soporte técnico rápido.",
+  nosotros_historia:
+    "Atendemos panaderías, restaurantes e industria alimentaria con venta de maquinaria, repuestos, instalación, mantenimiento y automatización. Nuestra operación está preparada para trabajar con datos, archivos y administración local en VPS.",
+  nosotros_mision:
+    "Ayudar a que cada cliente mantenga su operación activa con soluciones técnicas claras, repuestos adecuados y acompañamiento responsable.",
+  nosotros_vision:
+    "Ser un referente peruano en maquinaria, repuestos y servicio técnico para producción alimentaria e industrial.",
+  nosotros_valores: "Responsabilidad\nClaridad técnica\nRespuesta rápida\nTrabajo honesto",
+  nosotros_imagen: "/hero-tecnova-industrial.png",
   facebook_url: "",
   instagram_url: "",
   tiktok_url: "",
+  youtube_url: "",
   linkedin_url: "",
   seo_titulo: "Tecnova Perú | Maquinaria industrial",
-  seo_descripcion: "Venta de maquinaria, repuestos y servicios técnicos para panificación e industria alimentaria.",
+  seo_descripcion:
+    "Venta de maquinaria, repuestos y servicios técnicos para panificación e industria alimentaria.",
   copyright_texto: "© 2026 Tecnova Perú. Todos los derechos reservados.",
-  designer_texto: "Diseñado y desarrollado por Fabrizio Apaza",
-  mensaje_whatsapp: "Hola Tecnova, me gustaría recibir más información sobre sus equipos y servicios.",
+  designer_texto: "Designed and developed by Fabrizio Apaza",
+  mensaje_whatsapp:
+    "Hola Tecnova, me gustaría recibir más información sobre sus equipos y servicios.",
 };
 
 export async function getSettingsMap() {

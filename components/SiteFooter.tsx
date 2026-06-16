@@ -9,7 +9,7 @@ export default function SiteFooter({
 }) {
   const footerLogo = settings.logo_footer || "/logo.png";
   const copyright = settings.copyright_texto || "© 2026 Tecnova Perú. Todos los derechos reservados.";
-  const designer = settings.designer_texto || "Diseñado y desarrollado por Fabrizio Apaza";
+  const designer = settings.designer_texto || "Designed and developed by Fabrizio Apaza";
   const legalLinks = [
     ["Libro de Reclamaciones", "/libro-de-reclamaciones"],
     ["Política de Privacidad", "/politica-privacidad"],

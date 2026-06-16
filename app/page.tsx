@@ -19,16 +19,19 @@ const categoryIcons = {
 export default async function Home() {
   const settings = await getSettingsMap();
   const [featuredProducts, featuredSpareParts, categories, brands, services, projects] = await Promise.all([
-    getFeaturedProducts(),
-    getFeaturedSpareParts(),
+    getFeaturedProducts().catch(() => []),
+    getFeaturedSpareParts().catch(() => []),
     prisma.category.findMany({
       where: { activo: true, slug: { in: ["hornos", "laminadoras", "quemadores", "repuestos"] } },
       orderBy: { orden: "asc" },
-    }),
-    prisma.brand.findMany({ where: { activo: true }, orderBy: { orden: "asc" }, take: 12 }),
-    prisma.service.findMany({ where: { activo: true, slug: { in: ["reparacion", "mantenimiento", "automatizacion", "instalacion"] } }, orderBy: { orden: "asc" } }),
-    prisma.project.findMany({ where: { activo: true }, orderBy: [{ destacado: "desc" }, { orden: "asc" }], take: 3 }),
+    }).catch(() => []),
+    prisma.brand.findMany({ where: { activo: true }, orderBy: { orden: "asc" }, take: 12 }).catch(() => []),
+    prisma.service.findMany({ where: { activo: true, slug: { in: ["reparacion", "mantenimiento", "automatizacion", "instalacion"] } }, orderBy: { orden: "asc" } }).catch(() => []),
+    prisma.project.findMany({ where: { activo: true }, orderBy: [{ destacado: "desc" }, { orden: "asc" }], take: 3 }).catch(() => []),
   ]);
+  const heroBanner = await prisma.banner
+    .findFirst({ where: { activo: true, posicion: "hero" }, orderBy: { orden: "asc" } })
+    .catch(() => null);
 
   const mainCategories = [
     ...categories.map((category) => ({
@@ -47,24 +50,24 @@ export default async function Home() {
 
       <section className="mx-auto grid max-w-[1540px] gap-5 px-4 py-5 sm:px-5 lg:grid-cols-[1.35fr_0.65fr] lg:px-14 lg:py-8">
         <article className="relative min-h-[560px] overflow-hidden rounded-[30px] bg-black text-white shadow-lift">
-          <Image src="/hero-tecnova-industrial.png" alt="Tecnova maquinaria industrial" fill priority sizes="(max-width: 1024px) 100vw, 68vw" className="object-cover object-[62%_center]" />
+          <Image src={heroBanner?.imagenDesktop || "/hero-tecnova-industrial.png"} alt={heroBanner?.titulo || "Tecnova maquinaria industrial"} fill priority sizes="(max-width: 1024px) 100vw, 68vw" className="object-cover object-[62%_center]" />
           <div className="absolute inset-0 bg-gradient-to-r from-black/88 via-black/45 to-black/10" />
           <div className="absolute inset-x-5 top-8 max-w-2xl sm:left-9 sm:right-auto sm:top-1/2 sm:-translate-y-1/2 lg:left-12">
             <p className="inline-flex rounded-full bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-red-200 backdrop-blur">
-              Maquinaria industrial en Perú
+              {heroBanner?.subtitulo || "Maquinaria industrial en Perú"}
             </p>
             <h1 className="mt-5 text-4xl font-black leading-none tracking-[-0.055em] sm:text-6xl lg:text-7xl">
-              Tecnología confiable para producción real
+              {heroBanner?.titulo || "Tecnología confiable para producción real"}
             </h1>
             <p className="mt-5 max-w-xl text-base font-semibold leading-7 text-white/78">
-              Venta de equipos, repuestos, instalación, mantenimiento y reparación para panaderías, restaurantes e industria alimentaria.
+              {heroBanner?.descripcion || "Venta de equipos, repuestos, instalación, mantenimiento y reparación para panaderías, restaurantes e industria alimentaria."}
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <Link href="#productos" className="inline-flex items-center gap-2 rounded-full bg-tecnova-red px-5 py-3 text-sm font-black text-white hover:bg-red-700">
-                Ver Productos <ArrowRight size={17} />
+              <Link href={heroBanner?.ctaLink || "#productos"} className="inline-flex items-center gap-2 rounded-full bg-tecnova-red px-5 py-3 text-sm font-black text-white hover:bg-red-700">
+                {heroBanner?.ctaTexto || "Ver Productos"} <ArrowRight size={17} />
               </Link>
-              <Link href="#repuestos" className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-black text-black hover:bg-neutral-100">
-                Ver Repuestos <ArrowRight size={17} />
+              <Link href={heroBanner?.ctaLink2 || "#repuestos"} className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-black text-black hover:bg-neutral-100">
+                {heroBanner?.ctaTexto2 || "Ver Repuestos"} <ArrowRight size={17} />
               </Link>
               <Link href="/cotizacion" className="inline-flex items-center gap-2 rounded-full bg-amber-300 px-5 py-3 text-sm font-black text-black hover:bg-amber-200">
                 Solicitar Cotización

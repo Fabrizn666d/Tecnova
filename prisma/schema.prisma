@@ -73,6 +73,7 @@ model Lead {
   consulta  String
   fuente    String   @default("contacto")
   estado    String   @default("nuevo")
+  notas     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -90,6 +91,7 @@ model Complaint {
   detalle          String
   pedido           String
   estado           String   @default("nuevo")
+  notas            String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }

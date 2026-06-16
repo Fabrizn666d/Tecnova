@@ -81,6 +81,21 @@ const modules: { key: PanelKey; label: string; icon: React.ComponentType<{ size?
   { key: "configuracion", label: "Configuración", icon: Settings },
 ];
 
+const moduleSections: { title: string; keys: PanelKey[] }[] = [
+  { title: "Inicio", keys: ["dashboard"] },
+  { title: "Contenido", keys: ["productos", "repuestos", "categorias", "marcas", "servicios", "proyectos", "banners", "faqs"] },
+  { title: "Gestión", keys: ["cotizaciones", "leads", "reclamaciones"] },
+  { title: "Sistema", keys: ["usuarios", "configuracion"] },
+];
+
+const requestResources = ["cotizaciones", "leads", "reclamaciones"] as const;
+const requestStatuses = [
+  ["nuevo", "Nuevo"],
+  ["en_proceso", "En proceso"],
+  ["contactado", "Contactado"],
+  ["cerrado", "Cerrado"],
+] as const;
+
 const templates: Record<ResourceKey, Record<string, unknown>> = {
   productos: {
     tipo: "producto",
@@ -171,7 +186,7 @@ const templates: Record<ResourceKey, Record<string, unknown>> = {
 
 const productAdvancedFields: FieldConfig[] = [
   { key: "slug", label: "Slug", tooltip: "Parte final de la URL. Se genera solo desde el nombre." },
-  { key: "codigoRef", label: "Código ref.", tooltip: "Código interno o referencia comercial." },
+  { key: "codigoRef", label: "SKU", tooltip: "Código interno del producto o repuesto." },
   { key: "modelo", label: "Modelo", tooltip: "Modelo del equipo, repuesto o componente." },
   {
     key: "condicion",
@@ -184,6 +199,7 @@ const productAdvancedFields: FieldConfig[] = [
   { key: "especificaciones", label: "Especificaciones", tooltip: "Usa líneas tipo Potencia: 2HP o deja JSON si ya lo usas.", type: "textarea" },
   { key: "caracteristicas", label: "Características", tooltip: "Puntos visibles en ficha. Una por línea.", type: "textarea" },
   { key: "aplicaciones", label: "Aplicaciones", tooltip: "Usos recomendados. Uno por línea.", type: "textarea" },
+  { key: "ordenDestacado", label: "Orden de visualización", tooltip: "Número menor aparece primero en destacados.", type: "number" },
   { key: "destacado", label: "Destacado", tooltip: "Muestra el producto en bloques destacados.", type: "checkbox" },
   { key: "nuevo", label: "Nuevo", tooltip: "Marca el producto como novedad.", type: "checkbox" },
   { key: "seoTitulo", label: "SEO título", tooltip: "Título sugerido para Google." },
@@ -227,7 +243,20 @@ const configGroups: { title: string; fields: FieldConfig[] }[] = [
       { key: "facebook_url", label: "Facebook", tooltip: "URL de Facebook.", type: "url" },
       { key: "instagram_url", label: "Instagram", tooltip: "URL de Instagram.", type: "url" },
       { key: "tiktok_url", label: "TikTok", tooltip: "URL de TikTok.", type: "url" },
+      { key: "youtube_url", label: "YouTube", tooltip: "URL de YouTube.", type: "url" },
       { key: "linkedin_url", label: "LinkedIn", tooltip: "URL de LinkedIn.", type: "url" },
+    ],
+  },
+  {
+    title: "Página Nosotros",
+    fields: [
+      { key: "nosotros_titulo", label: "Título principal", tooltip: "Título visible en la página Nosotros." },
+      { key: "nosotros_subtitulo", label: "Subtítulo", tooltip: "Resumen inicial de la empresa.", type: "textarea" },
+      { key: "nosotros_historia", label: "Historia", tooltip: "Texto principal de historia y enfoque.", type: "textarea" },
+      { key: "nosotros_mision", label: "Misión", tooltip: "Declaración de misión.", type: "textarea" },
+      { key: "nosotros_vision", label: "Visión", tooltip: "Declaración de visión.", type: "textarea" },
+      { key: "nosotros_valores", label: "Valores", tooltip: "Un valor por línea.", type: "textarea" },
+      { key: "nosotros_imagen", label: "Imagen principal", tooltip: "Imagen destacada de la página Nosotros.", type: "upload" },
     ],
   },
   {
@@ -236,7 +265,7 @@ const configGroups: { title: string; fields: FieldConfig[] }[] = [
       { key: "seo_titulo", label: "SEO título", tooltip: "Título principal del sitio." },
       { key: "seo_descripcion", label: "SEO descripción", tooltip: "Descripción general del sitio.", type: "textarea" },
       { key: "copyright_texto", label: "Texto copyright", tooltip: "Texto inferior izquierdo del footer." },
-      { key: "designer_texto", label: "Texto diseñador", tooltip: "Texto inferior derecho del footer." },
+      { key: "designer_texto", label: "Texto diseñador", tooltip: "Texto inferior derecho del footer. Ejemplo: Designed and developed by Fabrizio Apaza." },
     ],
   },
 ];
@@ -348,12 +377,6 @@ export default function AdminPage() {
       ignore = true;
     };
   }, [refreshSummary, router]);
-
-  useEffect(() => {
-    if (!isSuperAdmin && active === "usuarios") {
-      setActive("dashboard");
-    }
-  }, [active, isSuperAdmin]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -485,21 +508,32 @@ export default function AdminPage() {
       <aside className="fixed inset-y-0 left-0 hidden w-72 border-r border-neutral-800 bg-black p-5 text-white lg:block">
         <p className="text-xs font-black uppercase tracking-[0.2em] text-red-300">Tecnova</p>
         <h1 className="mt-2 text-3xl font-black">Panel administrativo</h1>
-        <nav className="mt-8 space-y-2">
-          {visibleModules.map((mod) => {
-            const Icon = mod.icon;
+        <nav className="mt-8 space-y-6">
+          {moduleSections.map((section) => {
+            const sectionModules = visibleModules.filter((mod) => section.keys.includes(mod.key));
+            if (sectionModules.length === 0) return null;
             return (
-              <button
-                key={mod.key}
-                type="button"
-                onClick={() => setActive(mod.key)}
-                className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-black transition ${
-                  active === mod.key ? "bg-tecnova-red text-white" : "text-white/70 hover:bg-white/10 hover:text-white"
-                }`}
-              >
-                <Icon size={18} />
-                {mod.label}
-              </button>
+              <div key={section.title}>
+                <p className="mb-2 px-4 text-[10px] font-black uppercase tracking-[0.18em] text-white/35">{section.title}</p>
+                <div className="space-y-2">
+                  {sectionModules.map((mod) => {
+                    const Icon = mod.icon;
+                    return (
+                      <button
+                        key={mod.key}
+                        type="button"
+                        onClick={() => setActive(mod.key)}
+                        className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-black transition ${
+                          active === mod.key ? "bg-tecnova-red text-white" : "text-white/70 hover:bg-white/10 hover:text-white"
+                        }`}
+                      >
+                        <Icon size={18} />
+                        {mod.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             );
           })}
         </nav>
@@ -514,7 +548,17 @@ export default function AdminPage() {
               {admin && <p className="mt-1 text-sm font-bold text-neutral-500">Bienvenido, {admin.nombre}</p>}
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              {activeResource && activeResource !== "configuracion" && (
+              <select
+                value={active}
+                onChange={(event) => setActive(event.target.value as PanelKey)}
+                className="h-11 rounded-lg border border-neutral-200 bg-white px-3 text-sm font-black outline-none lg:hidden"
+                aria-label="Sección del panel"
+              >
+                {visibleModules.map((mod) => (
+                  <option key={mod.key} value={mod.key}>{mod.label}</option>
+                ))}
+              </select>
+              {activeResource && activeResource !== "configuracion" && !isRequestResource(activeResource) && (
                 <button type="button" onClick={startNew} className="inline-flex items-center gap-2 rounded-lg bg-black px-4 py-3 text-sm font-black text-white">
                   <Plus size={17} /> Nuevo
                 </button>
@@ -577,7 +621,9 @@ export default function AdminPage() {
                             <td className="py-4 text-neutral-500">{formatDate(item.createdAt || item.updatedAt)}</td>
                             <td className="py-4">
                               <div className="flex justify-end gap-2">
-                                <button type="button" onClick={() => editItem(item)} className="rounded-lg bg-neutral-100 px-3 py-2 font-bold">Editar</button>
+                                <button type="button" onClick={() => editItem(item)} className="rounded-lg bg-neutral-100 px-3 py-2 font-bold">
+                                  {activeResource && isRequestResource(activeResource) ? "Ver solicitud" : "Editar"}
+                                </button>
                                 <button type="button" onClick={() => remove(item.id)} className="grid h-9 w-9 place-items-center rounded-lg bg-red-50 text-tecnova-red" aria-label={active === "usuarios" ? "Desactivar" : "Eliminar"}>
                                   <Trash2 size={16} />
                                 </button>
@@ -599,7 +645,15 @@ export default function AdminPage() {
 
             <form onSubmit={save} className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-black/5 xl:sticky xl:top-24 xl:self-start">
               <p className="text-xs font-black uppercase tracking-[0.16em] text-tecnova-red">Formulario</p>
-              <h3 className="mt-2 text-2xl font-black tracking-[-0.04em]">{selected.id ? "Editar registro" : active === "configuracion" ? "Configuración del sitio" : "Nuevo registro"}</h3>
+              <h3 className="mt-2 text-2xl font-black tracking-[-0.04em]">
+                {activeResource && isRequestResource(activeResource)
+                  ? "Ver solicitud"
+                  : selected.id
+                    ? "Editar registro"
+                    : active === "configuracion"
+                      ? "Configuración del sitio"
+                      : "Nuevo registro"}
+              </h3>
 
               <div className="mt-5">
                 {activeResource === "productos" || activeResource === "repuestos" ? (
@@ -624,6 +678,8 @@ export default function AdminPage() {
                   />
                 ) : activeResource === "usuarios" ? (
                   <UserForm selected={selected} onChange={(field, value) => setSelected((current) => ({ ...current, [field]: value }))} />
+                ) : activeResource && isRequestResource(activeResource) ? (
+                  <RequestForm resource={activeResource} selected={selected} onChange={(field, value) => setSelected((current) => ({ ...current, [field]: value }))} />
                 ) : (
                   <GenericForm
                     fields={fields}
@@ -747,7 +803,10 @@ function ProductForm({
             <DynamicField key={field.key} config={field} value={selected[field.key]} onChange={onChange} />
           ))}
           {kind === "repuestos" && (
-            <DynamicField config={{ key: "destacadoRepuesto", label: "Destacado repuesto", tooltip: "Muestra este repuesto en destacados.", type: "checkbox" }} value={selected.destacadoRepuesto} onChange={onChange} />
+            <>
+              <DynamicField config={{ key: "ordenRepuesto", label: "Orden en repuestos", tooltip: "Número menor aparece primero en repuestos destacados.", type: "number" }} value={selected.ordenRepuesto} onChange={onChange} />
+              <DynamicField config={{ key: "destacadoRepuesto", label: "Destacado repuesto", tooltip: "Muestra este repuesto en destacados.", type: "checkbox" }} value={selected.destacadoRepuesto} onChange={onChange} />
+            </>
           )}
         </div>
       )}
@@ -809,6 +868,66 @@ function UserForm({
       </label>
       <TextField field="password" label={selected.id ? "Nueva contraseña" : "Contraseña"} tooltip={selected.id ? "Opcional. Déjalo vacío para conservar la actual." : "Mínimo 8 caracteres."} value={selected.password} onChange={onChange} type="password" required={!selected.id} />
       <ToggleField field="activo" label="Activo" tooltip="Permite o bloquea el acceso al panel." value={selected.activo} onChange={onChange} />
+    </div>
+  );
+}
+
+function RequestForm({
+  resource,
+  selected,
+  onChange,
+}: {
+  resource: ResourceKey;
+  selected: Record<string, unknown>;
+  onChange: (field: string, value: unknown) => void;
+}) {
+  const message = resource === "leads" ? selected.consulta : selected.mensaje || selected.detalle;
+  const title = resource === "reclamaciones" ? selected.productoServicio : selected.nombre;
+  return (
+    <div className="space-y-5">
+      <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
+        <p className="text-xs font-black uppercase tracking-[0.14em] text-tecnova-red">Solicitud recibida</p>
+        <h4 className="mt-2 text-xl font-black">{String(title || "Sin título")}</h4>
+        <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+          <Info label="Nombre" value={selected.nombre} />
+          <Info label="Fecha" value={formatDate(selected.createdAt || selected.updatedAt)} />
+          <Info label="Teléfono" value={selected.telefono} />
+          <Info label="Email" value={selected.email} />
+          {resource === "reclamaciones" && <Info label="Documento" value={selected.documento} />}
+          {resource === "reclamaciones" && <Info label="Tipo" value={selected.tipo} />}
+          {resource === "reclamaciones" && <Info label="Monto" value={selected.monto} />}
+          {resource === "reclamaciones" && <Info label="Dirección" value={selected.direccion} />}
+        </dl>
+        <div className="mt-4">
+          <p className="text-xs font-black uppercase tracking-[0.12em] text-neutral-500">Mensaje</p>
+          <p className="mt-2 whitespace-pre-wrap rounded-lg bg-white p-4 text-sm font-semibold leading-6 text-tecnova-steel">{String(message || "Sin mensaje")}</p>
+        </div>
+        {resource === "reclamaciones" && (
+          <div className="mt-4">
+            <p className="text-xs font-black uppercase tracking-[0.12em] text-neutral-500">Pedido del consumidor</p>
+            <p className="mt-2 whitespace-pre-wrap rounded-lg bg-white p-4 text-sm font-semibold leading-6 text-tecnova-steel">{String(selected.pedido || "Sin pedido")}</p>
+          </div>
+        )}
+      </div>
+
+      <label className="block text-sm font-bold">
+        <FieldLabel label="Estado" tooltip="Estado interno para seguimiento del equipo administrativo." />
+        <select value={String(selected.estado || "nuevo")} onChange={(event) => onChange("estado", event.target.value)} className="mt-2 h-11 w-full rounded-lg border border-neutral-200 bg-white px-3 outline-none focus:border-tecnova-red">
+          {requestStatuses.map(([value, label]) => (
+            <option key={value} value={value}>{label}</option>
+          ))}
+        </select>
+      </label>
+      <TextField field="notas" label="Notas internas" tooltip="Notas visibles solo para administración." value={selected.notas} onChange={onChange} textarea />
+    </div>
+  );
+}
+
+function Info({ label, value }: { label: string; value: unknown }) {
+  return (
+    <div>
+      <dt className="text-xs font-black uppercase tracking-[0.12em] text-neutral-500">{label}</dt>
+      <dd className="mt-1 font-bold text-neutral-900">{String(value || "-")}</dd>
     </div>
   );
 }
@@ -956,9 +1075,14 @@ function UploadField({
   return (
     <div className="block text-sm font-bold">
       <FieldLabel label={label} tooltip={tooltip} />
-      {image && (
+      {image ? (
         <div className="mt-2 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50">
+          {/* eslint-disable-next-line @next/next/no-img-element -- Admin previews may use blob: URLs from local file inputs. */}
           <img src={image} alt={label} className="h-40 w-full object-contain" />
+        </div>
+      ) : (
+        <div className="mt-2 grid h-40 place-items-center rounded-lg border border-dashed border-neutral-300 bg-neutral-50 px-4 text-center text-xs font-black uppercase tracking-[0.12em] text-neutral-400">
+          Sin imagen cargada
         </div>
       )}
       <div className="mt-2 flex gap-2">
@@ -1151,7 +1275,11 @@ function isUploadField(field: string) {
 }
 
 function isNumericField(field: string) {
-  return ["orden", "rating", "monto", "overlayOpacity", "precio", "precioAnterior"].includes(field);
+  return ["orden", "ordenDestacado", "ordenRepuesto", "rating", "monto", "overlayOpacity", "precio", "precioAnterior"].includes(field);
+}
+
+function isRequestResource(resource: ResourceKey) {
+  return (requestResources as readonly string[]).includes(resource);
 }
 
 function label(field: string) {

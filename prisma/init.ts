@@ -70,6 +70,7 @@ const statements = [
     consulta TEXT NOT NULL,
     fuente TEXT NOT NULL DEFAULT 'contacto',
     estado TEXT NOT NULL DEFAULT 'nuevo',
+    notas TEXT,
     createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updatedAt DATETIME NOT NULL
   )`,
@@ -86,6 +87,7 @@ const statements = [
     detalle TEXT NOT NULL,
     pedido TEXT NOT NULL,
     estado TEXT NOT NULL DEFAULT 'nuevo',
+    notas TEXT,
     createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updatedAt DATETIME NOT NULL
   )`,
@@ -250,6 +252,18 @@ const productAlterStatements = [
 
 for (const [column, statement] of productAlterStatements) {
   if (!productColumns.has(column)) {
+    db.exec(statement);
+  }
+}
+
+for (const [table, column, statement] of [
+  ["Lead", "notas", "ALTER TABLE Lead ADD COLUMN notas TEXT"],
+  ["Complaint", "notas", "ALTER TABLE Complaint ADD COLUMN notas TEXT"],
+] as const) {
+  const columns = new Set(
+    dbWithPrepare.prepare(`PRAGMA table_info(${table})`).all().map((item) => String(item.name))
+  );
+  if (!columns.has(column)) {
     db.exec(statement);
   }
 }

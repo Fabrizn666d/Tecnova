@@ -12,3 +12,33 @@ Creating turbopack project {
   testMode: true
 }
 
+○ Compiling / ...
+○ Compiling /_error ...
+ GET / 500 in 109s (next.js: 39.2s, application-code: 70s)
+ GET / 500 in 73s (next.js: 42s, application-code: 30.7s)
+✓ Finished filesystem cache database compaction in 27.5s
+✓ Finished writing to filesystem cache in 13.8s
+○ Compiling /api/productos ...
+ GET /api/productos 200 in 2.8min (next.js: 54s, application-code: 114s)
+ GET / 500 in 4.5min (next.js: 3.6min, application-code: 56s)
+○ Compiling /api/repuestos ...
+✓ Finished writing to filesystem cache in 14.0s
+ GET /api/repuestos 200 in 79s (next.js: 27.3s, application-code: 52s)
+ GET /admin/login 200 in 4.7min (next.js: 2.4min, proxy.ts: 97s, application-code: 44s)
+ GET /productos 200 in 4.6min (next.js: 64s, application-code: 3.6min)
+○ Compiling /api/categorias ...
+ GET /api/admin/productos 401 in 77s (next.js: 58s, application-code: 18.4s)
+ GET /api/categorias 200 in 82s (next.js: 53s, application-code: 29.6s)
+○ Compiling /repuestos ...
+ GET /repuestos 200 in 4.5min (next.js: 23.2s, application-code: 4.1min)
+▲ Next.js 16.2.7 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.18.161:3000
+- Environments: .env
+✓ Ready in 1290ms
+Creating turbopack project {
+  dir: 'C:\\Users\\FAbri\\Desktop\\PROYECTOS\\tecnova-peru',
+  testMode: true
+}
+
+○ Compiling proxy ...

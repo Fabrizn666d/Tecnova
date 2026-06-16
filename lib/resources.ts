@@ -226,6 +226,7 @@ export function buildResourceData(resource: ResourceName, input: RecordData) {
         consulta: cleanText(input.consulta || input.mensaje, 2000),
         fuente: cleanText(input.fuente || "contacto", 40),
         estado: cleanText(input.estado || "nuevo", 40),
+        notas: cleanOptionalText(input.notas, 2000),
       };
     case "reclamaciones":
       return {
@@ -240,6 +241,7 @@ export function buildResourceData(resource: ResourceName, input: RecordData) {
         detalle: cleanText(input.detalle, 3000),
         pedido: cleanText(input.pedido, 2000),
         estado: cleanText(input.estado || "nuevo", 40),
+        notas: cleanOptionalText(input.notas, 2000),
       };
   }
 }
