@@ -12,6 +12,19 @@ type AdminToken = {
   rol: string;
 };
 
+export type AdminRole = "SUPER_ADMIN" | "ADMIN" | "EDITOR";
+
+export function normalizeAdminRole(role?: string | null): AdminRole {
+  const normalized = String(role || "ADMIN").trim().toUpperCase().replace(/-/g, "_");
+  if (normalized === "SUPERADMIN" || normalized === "SUPER_ADMIN") return "SUPER_ADMIN";
+  if (normalized === "EDITOR") return "EDITOR";
+  return "ADMIN";
+}
+
+export function isSuperAdmin(role?: string | null) {
+  return normalizeAdminRole(role) === "SUPER_ADMIN";
+}
+
 function secretKey() {
   const secret = process.env.JWT_SECRET || "dev-secret-tecnova-cambiar-en-produccion-32";
   return new TextEncoder().encode(secret);
@@ -32,7 +45,7 @@ export async function verifyAdminToken(token?: string) {
     const payload = verified.payload as AdminToken;
     const user = await prisma.adminUser.findUnique({ where: { id: payload.userId } });
     if (!user?.activo) return null;
-    return { id: user.id, nombre: user.nombre, email: user.email, rol: user.rol };
+    return { id: user.id, nombre: user.nombre, email: user.email, rol: normalizeAdminRole(user.rol) };
   } catch {
     return null;
   }

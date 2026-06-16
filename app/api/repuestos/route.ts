@@ -1,24 +1,25 @@
-import { ok, parsePagination } from "@/lib/http";
+import { fail, ok, parsePagination } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 import type { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = request.nextUrl;
-  const { pagina, limite, skip } = parsePagination(searchParams);
-  const q = searchParams.get("q")?.trim();
-  const categoria = searchParams.get("categoria")?.trim();
-  const marca = searchParams.get("marca")?.trim();
-  const condicion = searchParams.get("condicion")?.trim();
-  const estado = searchParams.get("estado")?.trim();
-  const disponibilidad = searchParams.get("disponibilidad")?.trim();
-  const destacado = searchParams.get("destacado");
-  const precioMinParam = searchParams.get("precioMin");
-  const precioMaxParam = searchParams.get("precioMax");
-  const precioMin = Number(precioMinParam);
-  const precioMax = Number(precioMaxParam);
-  const orden = searchParams.get("orden") || "relevantes";
+  try {
+    const { searchParams } = request.nextUrl;
+    const { pagina, limite, skip } = parsePagination(searchParams);
+    const q = searchParams.get("q")?.trim();
+    const categoria = searchParams.get("categoria")?.trim();
+    const marca = searchParams.get("marca")?.trim();
+    const condicion = searchParams.get("condicion")?.trim();
+    const estado = searchParams.get("estado")?.trim();
+    const disponibilidad = searchParams.get("disponibilidad")?.trim();
+    const destacado = searchParams.get("destacado");
+    const precioMinParam = searchParams.get("precioMin");
+    const precioMaxParam = searchParams.get("precioMax");
+    const precioMin = Number(precioMinParam);
+    const precioMax = Number(precioMaxParam);
+    const orden = searchParams.get("orden") || "relevantes";
 
   const orderBy =
     orden === "recientes"
@@ -75,5 +76,8 @@ export async function GET(request: NextRequest) {
     prisma.product.count({ where }),
   ]);
 
-  return ok({ items, total, pagina, limite });
+    return ok({ items, total, pagina, limite });
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : "No se pudieron cargar los repuestos.");
+  }
 }

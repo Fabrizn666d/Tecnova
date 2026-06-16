@@ -36,7 +36,7 @@ export default async function ServicioPage({ params }: Props) {
 
   return (
     <main className="min-h-screen bg-white text-tecnova-dark">
-      <SiteHeader whatsapp={settings.whatsapp} whatsappDisplay={settings.whatsapp_display} />
+      <SiteHeader whatsapp={settings.whatsapp} whatsappDisplay={settings.whatsapp_display} logo={settings.logo_principal} />
       <section className="mx-auto grid max-w-[1540px] gap-7 px-4 py-8 sm:px-5 lg:grid-cols-[1fr_0.85fr] lg:px-14">
         <div className="rounded-[30px] bg-neutral-100 p-7 sm:p-10">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-tecnova-red">Servicio industrial</p>
@@ -82,11 +82,14 @@ export default async function ServicioPage({ params }: Props) {
       {faqs.length > 0 && (
         <section className="mx-auto max-w-[1000px] px-4 py-8 sm:px-5 lg:px-14">
           <h2 className="text-3xl font-black tracking-[-0.05em]">Preguntas frecuentes</h2>
-          <div className="mt-5 grid gap-3">
+          <div className="mt-5 grid gap-4">
             {faqs.map((faq) => (
-              <details key={faq.id} className="rounded-2xl bg-neutral-100 p-5">
-                <summary className="cursor-pointer text-sm font-black">{faq.pregunta}</summary>
-                <p className="mt-3 text-sm font-semibold leading-6 text-tecnova-steel">{faq.respuesta}</p>
+              <details key={faq.id} className="group rounded-lg bg-neutral-100 p-5 shadow-sm ring-1 ring-black/5">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-base font-black">
+                  <span>{repairText(faq.pregunta)}</span>
+                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white text-tecnova-red transition group-open:rotate-45">+</span>
+                </summary>
+                <p className="mt-4 border-t border-neutral-200 pt-4 text-sm font-semibold leading-7 text-tecnova-steel">{repairText(faq.respuesta)}</p>
               </details>
             ))}
           </div>
@@ -96,4 +99,16 @@ export default async function ServicioPage({ params }: Props) {
       <SiteFooter settings={settings} />
     </main>
   );
+}
+
+function repairText(value: string) {
+  const bad = "\uFFFD";
+  return value
+    .replaceAll(`${bad}Realizan instalaci${bad}n?`, "¿Realizan instalación?")
+    .replaceAll(`instalaci${bad}n`, "instalación")
+    .replaceAll(`coordinaci${bad}n`, "coordinación")
+    .replaceAll(`ubicaci${bad}n`, "ubicación")
+    .replaceAll(`S${bad}`, "Sí")
+    .replaceAll(`t${bad}cnica`, "técnica")
+    .replaceAll(`el${bad}ctricos`, "eléctricos");
 }

@@ -31,7 +31,7 @@ export default async function TrabajoPage({ params }: Props) {
 
   return (
     <main className="min-h-screen bg-white text-tecnova-dark">
-      <SiteHeader whatsapp={settings.whatsapp} whatsappDisplay={settings.whatsapp_display} />
+      <SiteHeader whatsapp={settings.whatsapp} whatsappDisplay={settings.whatsapp_display} logo={settings.logo_principal} />
       <section className="mx-auto max-w-[1200px] px-4 py-8 sm:px-5 lg:px-14">
         <p className="text-xs font-black uppercase tracking-[0.18em] text-tecnova-red">{project.categoria || "Trabajo realizado"}</p>
         <h1 className="mt-3 text-4xl font-black leading-none tracking-[-0.055em] sm:text-6xl">{project.titulo}</h1>

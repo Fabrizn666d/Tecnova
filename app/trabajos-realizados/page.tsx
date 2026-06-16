@@ -18,7 +18,7 @@ export default async function TrabajosPage() {
 
   return (
     <main className="min-h-screen bg-white text-tecnova-dark">
-      <SiteHeader whatsapp={settings.whatsapp} whatsappDisplay={settings.whatsapp_display} />
+      <SiteHeader whatsapp={settings.whatsapp} whatsappDisplay={settings.whatsapp_display} logo={settings.logo_principal} />
       <section className="bg-neutral-100 px-4 py-10 sm:px-5 lg:px-14">
         <div className="mx-auto max-w-[1540px]">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-tecnova-red">Trabajos realizados</p>

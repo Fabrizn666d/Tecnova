@@ -1,12 +1,15 @@
 "use client";
 
 import {
+  BarChart3,
   Boxes,
+  CircleHelp,
   ClipboardList,
   FileWarning,
   FolderKanban,
   ImageIcon,
   Layers,
+  Loader2,
   LogOut,
   MessageCircle,
   Plus,
@@ -38,12 +41,30 @@ type ResourceKey =
   | "leads"
   | "reclamaciones";
 
+type PanelKey = "dashboard" | ResourceKey;
+
 type ApiList = {
   items: Record<string, unknown>[];
   total: number;
 };
 
-const modules: { key: ResourceKey; label: string; icon: React.ComponentType<{ size?: number }> }[] = [
+type AdminProfile = {
+  id: string;
+  nombre: string;
+  email: string;
+  rol: "SUPER_ADMIN" | "ADMIN" | "EDITOR";
+};
+
+type FieldConfig = {
+  key: string;
+  label: string;
+  tooltip: string;
+  type?: "text" | "textarea" | "number" | "email" | "url" | "password" | "select" | "checkbox" | "upload";
+  options?: readonly (readonly [string, string])[];
+};
+
+const modules: { key: PanelKey; label: string; icon: React.ComponentType<{ size?: number }> }[] = [
+  { key: "dashboard", label: "Dashboard", icon: BarChart3 },
   { key: "productos", label: "Productos", icon: Boxes },
   { key: "repuestos", label: "Repuestos", icon: Settings },
   { key: "categorias", label: "Categorías", icon: Layers },
@@ -72,6 +93,11 @@ const templates: Record<ResourceKey, Record<string, unknown>> = {
     modelo: "",
     codigoRef: "",
     condicion: "nuevo",
+    precio: "",
+    precioAnterior: "",
+    moneda: "PEN",
+    mostrarPrecio: false,
+    etiquetaPrecio: "Consultar precio",
     imagenPrincipal: "",
     imagenes: "[]",
     especificaciones: "[]",
@@ -83,6 +109,8 @@ const templates: Record<ResourceKey, Record<string, unknown>> = {
     destacadoRepuesto: false,
     nuevo: false,
     disponible: true,
+    seoTitulo: "",
+    seoDesc: "",
   },
   repuestos: {
     tipo: "repuesto",
@@ -95,6 +123,11 @@ const templates: Record<ResourceKey, Record<string, unknown>> = {
     modelo: "",
     codigoRef: "",
     condicion: "nuevo",
+    precio: "",
+    precioAnterior: "",
+    moneda: "PEN",
+    mostrarPrecio: false,
+    etiquetaPrecio: "Consultar precio",
     imagenPrincipal: "",
     imagenes: "[]",
     especificaciones: "[]",
@@ -107,17 +140,19 @@ const templates: Record<ResourceKey, Record<string, unknown>> = {
     destacadoRepuesto: true,
     nuevo: false,
     disponible: true,
+    seoTitulo: "",
+    seoDesc: "",
   },
   categorias: { nombre: "", slug: "", descripcion: "", icono: "Flame", imagen: "", color: "#C41E2A", orden: 0, activo: true },
   servicios: { nombre: "", slug: "", descripcion: "", descripcionLarga: "", icono: "Wrench", imagen: "", caracteristicas: "[]", orden: 0, activo: true },
   proyectos: { titulo: "", slug: "", descripcion: "", cliente: "", ubicacion: "", categoria: "Instalación", imagenes: "[]", destacado: false, activo: true, orden: 0 },
-  banners: { titulo: "", subtitulo: "", descripcion: "", ctaTexto: "", ctaLink: "", ctaTipo: "link", imagenDesktop: "", imagenMobile: "", posicion: "hero", activo: true, orden: 0, overlay: true, overlayOpacity: 0.5 },
+  banners: { titulo: "", subtitulo: "", descripcion: "", ctaTexto: "", ctaLink: "", ctaTipo: "link", ctaTexto2: "", ctaLink2: "", imagenDesktop: "", imagenMobile: "", posicion: "hero", activo: true, orden: 0, overlay: true, overlayOpacity: 0.5 },
   marcas: { nombre: "", logo: "", url: "", orden: 0, activo: true },
   cotizaciones: { nombre: "", telefono: "", email: "", mensaje: "", fuente: "whatsapp", estado: "nuevo", notas: "" },
   testimonios: { nombre: "", empresa: "", cargo: "", mensaje: "", rating: 5, imagen: "", activo: true, orden: 0 },
   faqs: { pregunta: "", respuesta: "", categoria: "general", orden: 0, activo: true },
-  usuarios: { nombre: "", email: "", password: "", rol: "admin", activo: true },
-  configuracion: { clave: "", valor: "", tipo: "string", grupo: "general", label: "" },
+  usuarios: { nombre: "", email: "", password: "", rol: "ADMIN", activo: true },
+  configuracion: {},
   leads: { nombre: "", telefono: "", email: "", consulta: "", fuente: "contacto", estado: "nuevo" },
   reclamaciones: {
     nombre: "",
@@ -134,101 +169,331 @@ const templates: Record<ResourceKey, Record<string, unknown>> = {
   },
 };
 
+const productAdvancedFields: FieldConfig[] = [
+  { key: "slug", label: "Slug", tooltip: "Parte final de la URL. Se genera solo desde el nombre." },
+  { key: "codigoRef", label: "Código ref.", tooltip: "Código interno o referencia comercial." },
+  { key: "modelo", label: "Modelo", tooltip: "Modelo del equipo, repuesto o componente." },
+  {
+    key: "condicion",
+    label: "Condición",
+    tooltip: "Estado comercial del producto.",
+    type: "select",
+    options: [["nuevo", "Nuevo"], ["usado", "Usado"], ["reacondicionado", "Reacondicionado"]],
+  },
+  { key: "tags", label: "Tags", tooltip: "Palabras para búsqueda. Puedes separarlas por coma o una por línea.", type: "textarea" },
+  { key: "especificaciones", label: "Especificaciones", tooltip: "Usa líneas tipo Potencia: 2HP o deja JSON si ya lo usas.", type: "textarea" },
+  { key: "caracteristicas", label: "Características", tooltip: "Puntos visibles en ficha. Una por línea.", type: "textarea" },
+  { key: "aplicaciones", label: "Aplicaciones", tooltip: "Usos recomendados. Uno por línea.", type: "textarea" },
+  { key: "destacado", label: "Destacado", tooltip: "Muestra el producto en bloques destacados.", type: "checkbox" },
+  { key: "nuevo", label: "Nuevo", tooltip: "Marca el producto como novedad.", type: "checkbox" },
+  { key: "seoTitulo", label: "SEO título", tooltip: "Título sugerido para Google." },
+  { key: "seoDesc", label: "SEO descripción", tooltip: "Resumen corto para resultados de búsqueda.", type: "textarea" },
+];
+
+const configGroups: { title: string; fields: FieldConfig[] }[] = [
+  {
+    title: "Empresa",
+    fields: [
+      { key: "empresa_nombre", label: "Nombre empresa", tooltip: "Nombre público mostrado en la web." },
+      { key: "razon_social", label: "Razón social", tooltip: "Nombre legal para datos comerciales." },
+      { key: "ruc", label: "RUC", tooltip: "RUC de la empresa." },
+      { key: "direccion", label: "Dirección", tooltip: "Dirección física o zona de atención." },
+      { key: "horario", label: "Horario", tooltip: "Horario comercial visible para clientes." },
+    ],
+  },
+  {
+    title: "Contacto",
+    fields: [
+      { key: "telefono", label: "Teléfono", tooltip: "Teléfono principal de contacto." },
+      { key: "whatsapp", label: "WhatsApp", tooltip: "Número con código de país, sin espacios. Ejemplo: 51999999999." },
+      { key: "whatsapp_display", label: "WhatsApp visible", tooltip: "Texto legible para mostrar el número." },
+      { key: "email", label: "Correo", tooltip: "Correo principal para formularios y footer.", type: "email" },
+      { key: "google_maps_url", label: "Google Maps URL", tooltip: "Enlace público de Google Maps.", type: "url" },
+      { key: "google_maps_embed", label: "Google Maps embed", tooltip: "URL de inserción del mapa.", type: "url" },
+    ],
+  },
+  {
+    title: "Identidad visual",
+    fields: [
+      { key: "logo_principal", label: "Logo principal", tooltip: "Logo usado en cabecera.", type: "upload" },
+      { key: "logo_footer", label: "Logo footer", tooltip: "Logo usado en pie de página.", type: "upload" },
+      { key: "favicon", label: "Favicon", tooltip: "Ícono del navegador.", type: "upload" },
+      { key: "libro_imagen", label: "Imagen libro", tooltip: "Imagen del Libro de Reclamaciones.", type: "upload" },
+    ],
+  },
+  {
+    title: "Redes sociales",
+    fields: [
+      { key: "facebook_url", label: "Facebook", tooltip: "URL de Facebook.", type: "url" },
+      { key: "instagram_url", label: "Instagram", tooltip: "URL de Instagram.", type: "url" },
+      { key: "tiktok_url", label: "TikTok", tooltip: "URL de TikTok.", type: "url" },
+      { key: "linkedin_url", label: "LinkedIn", tooltip: "URL de LinkedIn.", type: "url" },
+    ],
+  },
+  {
+    title: "SEO y textos",
+    fields: [
+      { key: "seo_titulo", label: "SEO título", tooltip: "Título principal del sitio." },
+      { key: "seo_descripcion", label: "SEO descripción", tooltip: "Descripción general del sitio.", type: "textarea" },
+      { key: "copyright_texto", label: "Texto copyright", tooltip: "Texto inferior izquierdo del footer." },
+      { key: "designer_texto", label: "Texto diseñador", tooltip: "Texto inferior derecho del footer." },
+    ],
+  },
+];
+
 export default function AdminPage() {
   const router = useRouter();
-  const [active, setActive] = useState<ResourceKey>("productos");
+  const [admin, setAdmin] = useState<AdminProfile | null>(null);
+  const [active, setActive] = useState<PanelKey>("dashboard");
   const [items, setItems] = useState<Record<string, unknown>[]>([]);
   const [total, setTotal] = useState(0);
   const [summary, setSummary] = useState<Record<string, unknown>>({});
-  const [selected, setSelected] = useState<Record<string, unknown>>(templates.productos);
+  const [selected, setSelected] = useState<Record<string, unknown>>({});
   const [query, setQuery] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [uploadingField, setUploadingField] = useState("");
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [uploadPreviews, setUploadPreviews] = useState<Record<string, string>>({});
   const [categories, setCategories] = useState<Record<string, unknown>[]>([]);
 
-  const fields = useMemo(() => Object.keys(templates[active]), [active]);
+  const isSuperAdmin = admin?.rol === "SUPER_ADMIN";
+  const visibleModules = useMemo(
+    () => modules.filter((mod) => mod.key !== "usuarios" || isSuperAdmin),
+    [isSuperAdmin]
+  );
+  const activeResource = active === "dashboard" ? null : active;
+  const fields = useMemo(() => (activeResource ? Object.keys(templates[activeResource]) : []), [activeResource]);
+
+  const refreshSummary = useCallback(async () => {
+    try {
+      const response = await fetch("/api/admin/reportes/resumen");
+      if (response.status === 401) {
+        router.push("/admin/login");
+        return;
+      }
+      const payload = await safeJson(response);
+      if (response.ok) setSummary(payload.data || {});
+    } catch {
+      setSummary({});
+    }
+  }, [router]);
 
   const load = useCallback(async () => {
-    setLoading(true);
-    const response = await fetch(`/api/admin/${active}${query ? `?q=${encodeURIComponent(query)}` : ""}`);
-    if (response.status === 401) {
-      router.push("/admin/login");
+    if (active === "dashboard") {
+      setItems([]);
+      setTotal(0);
+      setSelected({});
+      await refreshSummary();
       return;
     }
-    const payload = await response.json();
-    const data = payload.data as ApiList;
-    setItems(data?.items || []);
-    setTotal(data?.total || 0);
-    setSelected(templates[active]);
-    setLoading(false);
-  }, [active, query, router]);
+
+    setLoading(true);
+    setMessage("");
+    try {
+      const response = await fetch(`/api/admin/${active}${query ? `?q=${encodeURIComponent(query)}` : ""}`);
+      if (response.status === 401) {
+        router.push("/admin/login");
+        return;
+      }
+      const payload = await safeJson(response);
+      if (!response.ok || !payload.ok) {
+        setItems([]);
+        setTotal(0);
+        setMessage(payload.message || "No se pudo cargar la sección.");
+        return;
+      }
+
+      const data = payload.data as ApiList;
+      setItems(data?.items || []);
+      setTotal(data?.total || 0);
+      setSelected(active === "configuracion" ? settingsRowsToForm(data?.items || []) : newTemplate(active));
+      setAdvancedOpen(false);
+    } catch {
+      setMessage("No se pudo conectar con el servidor. Intenta nuevamente.");
+      setItems([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [active, query, refreshSummary, router]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    let ignore = false;
+
+    async function bootstrap() {
+      try {
+        const me = await fetch("/api/admin/auth/me");
+        if (me.status === 401) {
+          router.push("/admin/login");
+          return;
+        }
+        const mePayload = await safeJson(me);
+        if (!ignore && me.ok) setAdmin(mePayload.data);
+
+        const [categoryResponse] = await Promise.all([
+          fetch("/api/admin/categorias"),
+          refreshSummary(),
+        ]);
+        const categoryPayload = await safeJson(categoryResponse);
+        if (!ignore && categoryResponse.ok) setCategories(categoryPayload.data?.items || []);
+      } catch {
+        if (!ignore) setMessage("No se pudo cargar la sesión del panel.");
+      }
+    }
+
+    bootstrap();
+    return () => {
+      ignore = true;
+    };
+  }, [refreshSummary, router]);
+
+  useEffect(() => {
+    if (!isSuperAdmin && active === "usuarios") {
+      setActive("dashboard");
+    }
+  }, [active, isSuperAdmin]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
       load();
-      fetch("/api/admin/reportes/resumen").then((res) => res.json()).then((json) => setSummary(json.data || {}));
-      fetch("/api/admin/categorias").then((res) => res.json()).then((json) => setCategories(json.data?.items || []));
-    }, 0);
-    return () => clearTimeout(timer);
+    }, 120);
+    return () => window.clearTimeout(timer);
   }, [load]);
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!activeResource) return;
+
     setMessage("");
-    const id = selected.id;
-    const response = await fetch(id ? `/api/admin/${active}/${id}` : `/api/admin/${active}`, {
-      method: id ? "PUT" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(selected),
-    });
-    const payload = await response.json();
-    if (!response.ok) {
-      setMessage(payload.message || "No se pudo guardar.");
-      return;
+    setSaving(true);
+    try {
+      const id = selected.id;
+      const payload = preparePayload(activeResource, selected);
+      const response = await fetch(
+        activeResource === "configuracion"
+          ? "/api/admin/configuracion"
+          : id
+            ? `/api/admin/${activeResource}/${id}`
+            : `/api/admin/${activeResource}`,
+        {
+          method: activeResource === "configuracion" ? "PUT" : id ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+      const result = await safeJson(response);
+      if (!response.ok || !result.ok) {
+        setMessage(result.message || "No se pudo guardar.");
+        return;
+      }
+      setMessage("Guardado correctamente.");
+      await Promise.all([load(), refreshSummary()]);
+    } catch {
+      setMessage("No se pudo guardar. Revisa los campos e intenta nuevamente.");
+    } finally {
+      setSaving(false);
     }
-    setMessage("Guardado correctamente.");
-    await load();
   }
 
   async function remove(id: unknown) {
-    if (!id || !confirm("¿Eliminar este registro?")) return;
-    await fetch(`/api/admin/${active}/${id}`, { method: "DELETE" });
-    await load();
+    if (!activeResource || activeResource === "configuracion") return;
+    const action = activeResource === "usuarios" ? "desactivar" : "eliminar";
+    if (!id || !confirm(`¿Seguro que deseas ${action} este registro?`)) return;
+
+    setMessage("");
+    try {
+      const response = await fetch(`/api/admin/${activeResource}/${id}`, { method: "DELETE" });
+      const payload = await safeJson(response);
+      if (!response.ok || !payload.ok) {
+        setMessage(payload.message || `No se pudo ${action} el registro.`);
+        return;
+      }
+      await Promise.all([load(), refreshSummary()]);
+      setMessage(activeResource === "usuarios" ? "Usuario desactivado." : "Registro eliminado.");
+    } catch {
+      setMessage("No se pudo completar la acción.");
+    }
   }
 
   async function logout() {
-    await fetch("/api/admin/auth/logout", { method: "POST" });
+    await fetch("/api/admin/auth/logout", { method: "POST" }).catch(() => null);
     router.push("/admin/login");
   }
 
   async function upload(event: ChangeEvent<HTMLInputElement>, field: string) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const form = new FormData();
-    form.set("file", file);
-    form.set("folder", active);
-    const response = await fetch("/api/upload", { method: "POST", body: form });
-    const payload = await response.json();
-    if (response.ok) {
-      setSelected((current) => ({ ...current, [field]: payload.data.url }));
-    } else {
-      setMessage(payload.message || "No se pudo subir el archivo.");
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    if (!file || !activeResource) return;
+
+    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowed.includes(file.type)) {
+      setMessage("Formato no permitido. Usa JPG, JPEG, PNG o WebP.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage("La imagen no debe superar 5MB.");
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setUploadPreviews((current) => ({ ...current, [field]: previewUrl }));
+    setUploadingField(field);
+    setMessage("");
+
+    try {
+      const form = new FormData();
+      form.set("file", file);
+      form.set("folder", activeResource);
+      const response = await fetch("/api/upload", { method: "POST", body: form });
+      const payload = await safeJson(response);
+      if (!response.ok || !payload.ok) {
+        setMessage(payload.message || "No se pudo subir la imagen.");
+        return;
+      }
+
+      const url = String(payload.data.url || "");
+      setSelected((current) => updateImageField(current, field, url));
+      setUploadPreviews((current) => ({ ...current, [field]: url }));
+      setMessage("Imagen subida. Recuerda guardar los cambios.");
+    } catch {
+      setMessage("No se pudo subir la imagen.");
+    } finally {
+      setUploadingField("");
     }
   }
 
+  function editItem(item: Record<string, unknown>) {
+    if (!activeResource) return;
+    setMessage("");
+    setAdvancedOpen(false);
+    setSelected(normalizeSelected(activeResource, item));
+  }
+
+  function startNew() {
+    if (!activeResource || activeResource === "configuracion") return;
+    setMessage("");
+    setAdvancedOpen(false);
+    setSelected(newTemplate(activeResource));
+  }
+
+  const title = modules.find((mod) => mod.key === active)?.label || "Dashboard";
+
   return (
     <main className="min-h-screen bg-neutral-100 text-neutral-950">
-      <aside className="fixed inset-y-0 left-0 hidden w-72 border-r border-neutral-200 bg-black p-5 text-white lg:block">
+      <aside className="fixed inset-y-0 left-0 hidden w-72 border-r border-neutral-800 bg-black p-5 text-white lg:block">
         <p className="text-xs font-black uppercase tracking-[0.2em] text-red-300">Tecnova</p>
         <h1 className="mt-2 text-3xl font-black">Panel administrativo</h1>
         <nav className="mt-8 space-y-2">
-          {modules.map((mod) => {
+          {visibleModules.map((mod) => {
             const Icon = mod.icon;
             return (
               <button
                 key={mod.key}
+                type="button"
                 onClick={() => setActive(mod.key)}
-                className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black transition ${
+                className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-black transition ${
                   active === mod.key ? "bg-tecnova-red text-white" : "text-white/70 hover:bg-white/10 hover:text-white"
                 }`}
               >
@@ -245,127 +510,624 @@ export default function AdminPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.18em] text-tecnova-red">Tecnova Perú</p>
-              <h2 className="text-2xl font-black tracking-[-0.04em]">{modules.find((mod) => mod.key === active)?.label}</h2>
+              <h2 className="text-2xl font-black tracking-[-0.04em]">{title}</h2>
+              {admin && <p className="mt-1 text-sm font-bold text-neutral-500">Bienvenido, {admin.nombre}</p>}
             </div>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setSelected(templates[active])} className="inline-flex items-center gap-2 rounded-2xl bg-black px-4 py-3 text-sm font-black text-white">
-                <Plus size={17} /> Nuevo
-              </button>
-              <button onClick={logout} className="inline-flex items-center gap-2 rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm font-black">
+            <div className="flex flex-wrap items-center gap-2">
+              {activeResource && activeResource !== "configuracion" && (
+                <button type="button" onClick={startNew} className="inline-flex items-center gap-2 rounded-lg bg-black px-4 py-3 text-sm font-black text-white">
+                  <Plus size={17} /> Nuevo
+                </button>
+              )}
+              <button type="button" onClick={logout} className="inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-4 py-3 text-sm font-black">
                 <LogOut size={17} /> Salir
               </button>
             </div>
           </div>
         </header>
 
-        <div className="grid gap-5 p-4 lg:grid-cols-[1fr_420px] lg:p-8">
-          <div className="space-y-5">
-            <div className="grid gap-3 sm:grid-cols-4">
-              {["productos", "repuestos", "cotizaciones", "leads"].map((key) => (
-                <div key={key} className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5">
-                  <p className="text-xs font-black uppercase tracking-[0.14em] text-tecnova-red">{key}</p>
-                  <p className="mt-2 text-3xl font-black">{String(summary[key] || 0)}</p>
+        {active === "dashboard" ? (
+          <Dashboard summary={summary} loading={loading} />
+        ) : (
+          <div className={`grid gap-5 p-4 lg:p-8 ${active === "configuracion" ? "xl:grid-cols-[1fr]" : "xl:grid-cols-[1fr_460px]"}`}>
+            <section className="space-y-5">
+              {active !== "configuracion" && (
+                <div className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-black/5">
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.14em] text-tecnova-red">{title}</p>
+                      <p className="mt-1 text-sm font-bold text-neutral-500">{loading ? "Cargando..." : `${total} registros relacionados`}</p>
+                    </div>
+                    <form
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        load();
+                      }}
+                      className="flex min-w-[240px] flex-1 gap-2 sm:max-w-md"
+                    >
+                      <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar..." className="h-11 min-w-0 flex-1 rounded-lg border border-neutral-200 px-4 text-sm outline-none focus:border-tecnova-red" />
+                      <button className="grid h-11 w-11 place-items-center rounded-lg bg-black text-white" aria-label="Buscar">
+                        <Search size={18} />
+                      </button>
+                    </form>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[680px] text-left text-sm">
+                      <thead className="text-xs uppercase tracking-[0.12em] text-neutral-500">
+                        <tr>
+                          <th className="py-3">Registro</th>
+                          <th className="py-3">Estado</th>
+                          <th className="py-3">Fecha</th>
+                          <th className="py-3 text-right">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-neutral-100">
+                        {loading && (
+                          <tr>
+                            <td colSpan={4} className="py-8 text-center text-sm font-bold text-neutral-500">
+                              <span className="inline-flex items-center gap-2"><Loader2 className="animate-spin" size={16} /> Cargando registros...</span>
+                            </td>
+                          </tr>
+                        )}
+                        {!loading && items.map((item) => (
+                          <tr key={String(item.id)}>
+                            <td className="py-4 font-bold">{recordTitle(item)}</td>
+                            <td className="py-4"><StatusBadge item={item} /></td>
+                            <td className="py-4 text-neutral-500">{formatDate(item.createdAt || item.updatedAt)}</td>
+                            <td className="py-4">
+                              <div className="flex justify-end gap-2">
+                                <button type="button" onClick={() => editItem(item)} className="rounded-lg bg-neutral-100 px-3 py-2 font-bold">Editar</button>
+                                <button type="button" onClick={() => remove(item.id)} className="grid h-9 w-9 place-items-center rounded-lg bg-red-50 text-tecnova-red" aria-label={active === "usuarios" ? "Desactivar" : "Eliminar"}>
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                        {!loading && items.length === 0 && (
+                          <tr>
+                            <td colSpan={4} className="py-8 text-center text-sm font-bold text-neutral-500">No hay registros para mostrar.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              ))}
-            </div>
-
-            <div className="rounded-[24px] bg-white p-4 shadow-sm ring-1 ring-black/5">
-              <form
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  load();
-                }}
-                className="mb-4 flex gap-2"
-              >
-                <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar..." className="h-11 min-w-0 flex-1 rounded-2xl border border-neutral-200 px-4 text-sm outline-none" />
-                <button className="grid h-11 w-11 place-items-center rounded-2xl bg-black text-white">
-                  <Search size={18} />
-                </button>
-              </form>
-
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[680px] text-left text-sm">
-                  <thead className="text-xs uppercase tracking-[0.12em] text-neutral-500">
-                    <tr>
-                      <th className="py-3">Registro</th>
-                      <th className="py-3">Estado</th>
-                      <th className="py-3">Fecha</th>
-                      <th className="py-3 text-right">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-100">
-                    {items.map((item) => (
-                      <tr key={String(item.id)}>
-                        <td className="py-4 font-bold">{recordTitle(item)}</td>
-                        <td className="py-4">{String(item.activo ?? item.estado ?? "activo")}</td>
-                        <td className="py-4 text-neutral-500">{formatDate(item.createdAt)}</td>
-                        <td className="py-4">
-                          <div className="flex justify-end gap-2">
-                            <button onClick={() => setSelected(item)} className="rounded-xl bg-neutral-100 px-3 py-2 font-bold">Editar</button>
-                            <button onClick={() => remove(item.id)} className="grid h-9 w-9 place-items-center rounded-xl bg-red-50 text-tecnova-red">
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <p className="mt-4 text-sm font-bold text-neutral-500">{loading ? "Cargando..." : `${total} registros`}</p>
-            </div>
-          </div>
-
-          <form onSubmit={save} className="rounded-[24px] bg-white p-5 shadow-sm ring-1 ring-black/5 lg:sticky lg:top-24 lg:self-start">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-tecnova-red">Formulario</p>
-            <h3 className="mt-2 text-2xl font-black tracking-[-0.04em]">{selected.id ? "Editar registro" : "Nuevo registro"}</h3>
-            <div className="mt-5 space-y-4">
-              {(active === "productos" || active === "repuestos") && (
-                <label className="block text-sm font-bold">
-                  Categoría
-                  <select value={String(selected.categoryId || "")} onChange={(event) => setSelected((current) => ({ ...current, categoryId: event.target.value }))} className="mt-2 h-11 w-full rounded-2xl border border-neutral-200 px-3">
-                    <option value="">Seleccionar</option>
-                    {categories.map((category) => (
-                      <option key={String(category.id)} value={String(category.id)}>{String(category.nombre)}</option>
-                    ))}
-                  </select>
-                </label>
               )}
+            </section>
 
-              {fields.filter((field) => field !== "categoryId").map((field) => (
-                <Field
-                  key={field}
-                  field={field}
-                  value={selected[field]}
-                  onChange={(value) => setSelected((current) => ({ ...current, [field]: value }))}
-                  onUpload={(event) => upload(event, field)}
-                />
-              ))}
-            </div>
-            {message && <p className="mt-4 rounded-2xl bg-neutral-100 p-3 text-sm font-bold">{message}</p>}
-            <button className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-tecnova-red text-sm font-black text-white transition hover:bg-red-700">
-              <Save size={17} /> Guardar cambios
-            </button>
-          </form>
-        </div>
+            <form onSubmit={save} className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-black/5 xl:sticky xl:top-24 xl:self-start">
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-tecnova-red">Formulario</p>
+              <h3 className="mt-2 text-2xl font-black tracking-[-0.04em]">{selected.id ? "Editar registro" : active === "configuracion" ? "Configuración del sitio" : "Nuevo registro"}</h3>
+
+              <div className="mt-5">
+                {activeResource === "productos" || activeResource === "repuestos" ? (
+                  <ProductForm
+                    kind={activeResource}
+                    selected={selected}
+                    categories={categories}
+                    advancedOpen={advancedOpen}
+                    uploadPreviews={uploadPreviews}
+                    uploadingField={uploadingField}
+                    onToggleAdvanced={() => setAdvancedOpen((value) => !value)}
+                    onChange={(field, value) => setSelected((current) => changeProductField(current, field, value))}
+                    onUpload={upload}
+                  />
+                ) : activeResource === "configuracion" ? (
+                  <ConfigForm
+                    selected={selected}
+                    uploadPreviews={uploadPreviews}
+                    uploadingField={uploadingField}
+                    onChange={(field, value) => setSelected((current) => ({ ...current, [field]: value }))}
+                    onUpload={upload}
+                  />
+                ) : activeResource === "usuarios" ? (
+                  <UserForm selected={selected} onChange={(field, value) => setSelected((current) => ({ ...current, [field]: value }))} />
+                ) : (
+                  <GenericForm
+                    fields={fields}
+                    selected={selected}
+                    uploadPreviews={uploadPreviews}
+                    uploadingField={uploadingField}
+                    onChange={(field, value) => setSelected((current) => ({ ...current, [field]: value }))}
+                    onUpload={upload}
+                  />
+                )}
+              </div>
+
+              {message && <p className="mt-4 rounded-lg bg-neutral-100 p-3 text-sm font-bold">{message}</p>}
+              <button disabled={saving || !activeResource} className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-tecnova-red text-sm font-black text-white transition hover:bg-red-700 disabled:opacity-60">
+                {saving ? <Loader2 size={17} className="animate-spin" /> : <Save size={17} />} Guardar cambios
+              </button>
+            </form>
+          </div>
+        )}
       </section>
     </main>
   );
 }
 
-function Field({
-  field,
-  value,
+function Dashboard({ summary, loading }: { summary: Record<string, unknown>; loading: boolean }) {
+  const stats = [
+    ["Productos", "productos", Boxes],
+    ["Repuestos", "repuestos", Settings],
+    ["Cotizaciones", "cotizaciones", MessageCircle],
+    ["Leads", "leads", ClipboardList],
+  ] as const;
+  const top = Array.isArray(summary.topProductos) ? summary.topProductos as Record<string, unknown>[] : [];
+
+  return (
+    <section className="space-y-5 p-4 lg:p-8">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {stats.map(([label, key, Icon]) => (
+          <div key={key} className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-black/5">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-tecnova-red">{label}</p>
+              <Icon size={19} />
+            </div>
+            <p className="mt-3 text-3xl font-black">{loading ? "..." : String(summary[key] || 0)}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-black/5">
+        <p className="text-xs font-black uppercase tracking-[0.14em] text-tecnova-red">Productos con más movimiento</p>
+        <div className="mt-4 divide-y divide-neutral-100">
+          {top.length === 0 && <p className="py-4 text-sm font-bold text-neutral-500">Sin datos por ahora.</p>}
+          {top.map((item) => (
+            <div key={String(item.id)} className="grid gap-2 py-3 text-sm sm:grid-cols-[1fr_auto_auto]">
+              <p className="font-black">{String(item.nombre || "Producto")}</p>
+              <p className="font-bold text-neutral-500">{String(item.vistas || 0)} vistas</p>
+              <p className="font-bold text-neutral-500">{String(item.cotizaciones || 0)} cotizaciones</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ProductForm({
+  kind,
+  selected,
+  categories,
+  advancedOpen,
+  uploadPreviews,
+  uploadingField,
+  onToggleAdvanced,
   onChange,
   onUpload,
 }: {
-  field: string;
-  value: unknown;
-  onChange: (value: unknown) => void;
-  onUpload: (event: ChangeEvent<HTMLInputElement>) => void;
+  kind: "productos" | "repuestos";
+  selected: Record<string, unknown>;
+  categories: Record<string, unknown>[];
+  advancedOpen: boolean;
+  uploadPreviews: Record<string, string>;
+  uploadingField: string;
+  onToggleAdvanced: () => void;
+  onChange: (field: string, value: unknown) => void;
+  onUpload: (event: ChangeEvent<HTMLInputElement>, field: string) => void;
 }) {
-  const isBoolean = typeof value === "boolean";
-  const isLong = [
+  return (
+    <div className="space-y-4">
+      <TextField field="nombre" label="Nombre" tooltip="Nombre comercial visible para el cliente." value={selected.nombre} onChange={onChange} required />
+      <label className="block text-sm font-bold">
+        <FieldLabel label="Categoría" tooltip="Grupo donde aparecerá en el catálogo." />
+        <select value={String(selected.categoryId || "")} onChange={(event) => onChange("categoryId", event.target.value)} className="mt-2 h-11 w-full rounded-lg border border-neutral-200 bg-white px-3 outline-none focus:border-tecnova-red" required>
+          <option value="">Seleccionar</option>
+          {categories.map((category) => (
+            <option key={String(category.id)} value={String(category.id)}>{String(category.nombre)}</option>
+          ))}
+        </select>
+      </label>
+      <TextField field="marca" label="Marca" tooltip="Marca del equipo o repuesto." value={selected.marca} onChange={onChange} />
+      <div className="grid gap-3 sm:grid-cols-3">
+        <TextField field="precio" label="Precio" tooltip="Precio actual. Déjalo vacío si se cotiza por WhatsApp." value={selected.precio} onChange={onChange} type="number" />
+        <TextField field="precioAnterior" label="Precio anterior" tooltip="Precio tachado opcional para promociones." value={selected.precioAnterior} onChange={onChange} type="number" />
+        <label className="block text-sm font-bold">
+          <FieldLabel label="Moneda" tooltip="Moneda usada cuando el precio se muestra." />
+          <select value={getCurrency(selected)} onChange={(event) => onChange("moneda", event.target.value)} className="mt-2 h-11 w-full rounded-lg border border-neutral-200 bg-white px-3 outline-none focus:border-tecnova-red">
+            <option value="PEN">Soles (PEN)</option>
+            <option value="USD">Dólares (USD)</option>
+          </select>
+        </label>
+      </div>
+      <UploadField field="imagenPrincipal" label="Imagen principal" tooltip="Foto principal del producto o repuesto." value={selected.imagenPrincipal} preview={uploadPreviews.imagenPrincipal} uploading={uploadingField === "imagenPrincipal"} onUpload={onUpload} />
+      <TextField field="descripcionCorta" label="Descripción corta" tooltip="Resumen breve que aparece en tarjetas y ficha." value={selected.descripcionCorta} onChange={onChange} textarea required />
+      <ToggleField field="disponible" label="Disponible" tooltip="Activa si puede cotizarse o entregarse actualmente." value={selected.disponible} onChange={onChange} />
+
+      <button type="button" onClick={onToggleAdvanced} className="w-full rounded-lg border border-neutral-200 px-4 py-3 text-sm font-black transition hover:border-tecnova-red hover:text-tecnova-red">
+        {advancedOpen ? "Ocultar opciones avanzadas" : "Opciones avanzadas"}
+      </button>
+
+      {advancedOpen && (
+        <div className="space-y-4 border-t border-neutral-100 pt-4">
+          {productAdvancedFields.map((field) => (
+            <DynamicField key={field.key} config={field} value={selected[field.key]} onChange={onChange} />
+          ))}
+          {kind === "repuestos" && (
+            <DynamicField config={{ key: "destacadoRepuesto", label: "Destacado repuesto", tooltip: "Muestra este repuesto en destacados.", type: "checkbox" }} value={selected.destacadoRepuesto} onChange={onChange} />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ConfigForm({
+  selected,
+  uploadPreviews,
+  uploadingField,
+  onChange,
+  onUpload,
+}: {
+  selected: Record<string, unknown>;
+  uploadPreviews: Record<string, string>;
+  uploadingField: string;
+  onChange: (field: string, value: unknown) => void;
+  onUpload: (event: ChangeEvent<HTMLInputElement>, field: string) => void;
+}) {
+  return (
+    <div className="space-y-7">
+      {configGroups.map((group) => (
+        <section key={group.title} className="space-y-4 border-b border-neutral-100 pb-5 last:border-0 last:pb-0">
+          <h4 className="text-lg font-black">{group.title}</h4>
+          <div className="grid gap-4 md:grid-cols-2">
+            {group.fields.map((field) => (
+              field.type === "upload" ? (
+                <UploadField key={field.key} field={field.key} label={field.label} tooltip={field.tooltip} value={selected[field.key]} preview={uploadPreviews[field.key]} uploading={uploadingField === field.key} onUpload={onUpload} />
+              ) : (
+                <DynamicField key={field.key} config={field} value={selected[field.key]} onChange={onChange} />
+              )
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function UserForm({
+  selected,
+  onChange,
+}: {
+  selected: Record<string, unknown>;
+  onChange: (field: string, value: unknown) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <TextField field="nombre" label="Nombre" tooltip="Nombre que se mostrará en el saludo del panel." value={selected.nombre} onChange={onChange} required />
+      <TextField field="email" label="Correo" tooltip="Correo único para ingresar al panel." value={selected.email} onChange={onChange} type="email" required />
+      <label className="block text-sm font-bold">
+        <FieldLabel label="Rol" tooltip="SUPER_ADMIN gestiona usuarios. ADMIN y EDITOR no ven la sección Usuarios." />
+        <select value={String(selected.rol || "ADMIN").toUpperCase()} onChange={(event) => onChange("rol", event.target.value)} className="mt-2 h-11 w-full rounded-lg border border-neutral-200 bg-white px-3 outline-none focus:border-tecnova-red">
+          <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+          <option value="ADMIN">ADMIN</option>
+          <option value="EDITOR">EDITOR</option>
+        </select>
+      </label>
+      <TextField field="password" label={selected.id ? "Nueva contraseña" : "Contraseña"} tooltip={selected.id ? "Opcional. Déjalo vacío para conservar la actual." : "Mínimo 8 caracteres."} value={selected.password} onChange={onChange} type="password" required={!selected.id} />
+      <ToggleField field="activo" label="Activo" tooltip="Permite o bloquea el acceso al panel." value={selected.activo} onChange={onChange} />
+    </div>
+  );
+}
+
+function GenericForm({
+  fields,
+  selected,
+  uploadPreviews,
+  uploadingField,
+  onChange,
+  onUpload,
+}: {
+  fields: string[];
+  selected: Record<string, unknown>;
+  uploadPreviews: Record<string, string>;
+  uploadingField: string;
+  onChange: (field: string, value: unknown) => void;
+  onUpload: (event: ChangeEvent<HTMLInputElement>, field: string) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      {fields.map((field) => {
+        const value = selected[field];
+        if (typeof value === "boolean") {
+          return <ToggleField key={field} field={field} label={label(field)} tooltip={tooltip(field)} value={value} onChange={onChange} />;
+        }
+        if (isUploadField(field)) {
+          return <UploadField key={field} field={field} label={label(field)} tooltip={tooltip(field)} value={value} preview={uploadPreviews[field]} uploading={uploadingField === field} onUpload={onUpload} />;
+        }
+        return <TextField key={field} field={field} label={label(field)} tooltip={tooltip(field)} value={value} onChange={onChange} textarea={isLongField(field)} type={isNumericField(field) ? "number" : field === "email" ? "email" : "text"} />;
+      })}
+    </div>
+  );
+}
+
+function DynamicField({
+  config,
+  value,
+  onChange,
+}: {
+  config: FieldConfig;
+  value: unknown;
+  onChange: (field: string, value: unknown) => void;
+}) {
+  if (config.type === "checkbox") {
+    return <ToggleField field={config.key} label={config.label} tooltip={config.tooltip} value={value} onChange={onChange} />;
+  }
+  if (config.type === "select") {
+    return (
+      <label className="block text-sm font-bold">
+        <FieldLabel label={config.label} tooltip={config.tooltip} />
+        <select value={String(value || "")} onChange={(event) => onChange(config.key, event.target.value)} className="mt-2 h-11 w-full rounded-lg border border-neutral-200 bg-white px-3 outline-none focus:border-tecnova-red">
+          {(config.options || []).map(([optionValue, optionLabel]) => (
+            <option key={optionValue} value={optionValue}>{optionLabel}</option>
+          ))}
+        </select>
+      </label>
+    );
+  }
+  return (
+    <TextField
+      field={config.key}
+      label={config.label}
+      tooltip={config.tooltip}
+      value={value}
+      onChange={onChange}
+      textarea={config.type === "textarea"}
+      type={config.type === "number" ? "number" : config.type === "email" ? "email" : config.type === "url" ? "url" : config.type === "password" ? "password" : "text"}
+    />
+  );
+}
+
+function TextField({
+  field,
+  label,
+  tooltip,
+  value,
+  onChange,
+  type = "text",
+  textarea = false,
+  required = false,
+}: {
+  field: string;
+  label: string;
+  tooltip: string;
+  value: unknown;
+  onChange: (field: string, value: unknown) => void;
+  type?: string;
+  textarea?: boolean;
+  required?: boolean;
+}) {
+  return (
+    <label className="block text-sm font-bold">
+      <FieldLabel label={label} tooltip={tooltip} />
+      {textarea ? (
+        <textarea value={String(value ?? "")} required={required} onChange={(event) => onChange(field, event.target.value)} className="mt-2 min-h-24 w-full rounded-lg border border-neutral-200 px-4 py-3 outline-none focus:border-tecnova-red" />
+      ) : (
+        <input value={String(value ?? "")} required={required} onChange={(event) => onChange(field, event.target.value)} type={type} className="mt-2 h-11 w-full rounded-lg border border-neutral-200 px-4 outline-none focus:border-tecnova-red" />
+      )}
+    </label>
+  );
+}
+
+function ToggleField({
+  field,
+  label,
+  tooltip,
+  value,
+  onChange,
+}: {
+  field: string;
+  label: string;
+  tooltip: string;
+  value: unknown;
+  onChange: (field: string, value: unknown) => void;
+}) {
+  return (
+    <label className="flex items-center justify-between gap-4 rounded-lg border border-neutral-200 px-4 py-3 text-sm font-bold">
+      <FieldLabel label={label} tooltip={tooltip} />
+      <input type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(field, event.target.checked)} />
+    </label>
+  );
+}
+
+function UploadField({
+  field,
+  label,
+  tooltip,
+  value,
+  preview,
+  uploading,
+  onUpload,
+}: {
+  field: string;
+  label: string;
+  tooltip: string;
+  value: unknown;
+  preview?: string;
+  uploading: boolean;
+  onUpload: (event: ChangeEvent<HTMLInputElement>, field: string) => void;
+}) {
+  const inputId = `upload-${field}`;
+  const image = preview || firstImageUrl(value);
+
+  return (
+    <div className="block text-sm font-bold">
+      <FieldLabel label={label} tooltip={tooltip} />
+      {image && (
+        <div className="mt-2 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50">
+          <img src={image} alt={label} className="h-40 w-full object-contain" />
+        </div>
+      )}
+      <div className="mt-2 flex gap-2">
+        <input value={String(value ?? "")} onChange={() => null} readOnly className="h-11 min-w-0 flex-1 rounded-lg border border-neutral-200 px-4 text-xs outline-none" />
+        <label htmlFor={inputId} className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-lg bg-neutral-100 px-3 text-xs font-black transition hover:bg-neutral-200">
+          {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} Subir
+        </label>
+        <input id={inputId} type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => onUpload(event, field)} className="sr-only" />
+      </div>
+    </div>
+  );
+}
+
+function FieldLabel({ label, tooltip }: { label: string; tooltip: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      {label}
+      <span title={tooltip} aria-label={tooltip} className="inline-flex">
+        <CircleHelp size={14} className="text-neutral-400" />
+      </span>
+    </span>
+  );
+}
+
+function StatusBadge({ item }: { item: Record<string, unknown> }) {
+  const value = item.estado ? String(item.estado) : item.activo === false ? "inactivo" : item.disponible === false ? "consulta" : "activo";
+  const active = ["activo", "nuevo", "disponible"].includes(value.toLowerCase()) || item.activo === true;
+  return (
+    <span className={`rounded-full px-3 py-1 text-xs font-black ${active ? "bg-emerald-50 text-emerald-700" : "bg-neutral-100 text-neutral-600"}`}>
+      {value}
+    </span>
+  );
+}
+
+async function safeJson(response: Response) {
+  return response.json().catch(() => ({ ok: false, message: "Respuesta inválida del servidor." }));
+}
+
+function newTemplate(resource: ResourceKey) {
+  return { ...templates[resource] };
+}
+
+function normalizeSelected(resource: ResourceKey, item: Record<string, unknown>) {
+  const base = { ...newTemplate(resource), ...item };
+  if (resource === "usuarios") {
+    return { ...base, password: "", rol: String(base.rol || "ADMIN").toUpperCase() };
+  }
+  if (resource === "productos" || resource === "repuestos") {
+    return { ...base, moneda: getCurrency(base) };
+  }
+  return base;
+}
+
+function changeProductField(current: Record<string, unknown>, field: string, value: unknown) {
+  if (field !== "nombre") return { ...current, [field]: value };
+
+  const previousName = String(current.nombre || "");
+  const previousAutoSlug = slugifyText(previousName);
+  const currentSlug = String(current.slug || "");
+  const shouldUpdateSlug = !current.id || !currentSlug || currentSlug === previousAutoSlug;
+  return {
+    ...current,
+    nombre: value,
+    ...(shouldUpdateSlug ? { slug: slugifyText(String(value || "")) } : {}),
+  };
+}
+
+function preparePayload(resource: ResourceKey, selected: Record<string, unknown>) {
+  if (resource === "configuracion") {
+    const keys = configGroups.flatMap((group) => group.fields.map((field) => field.key));
+    return Object.fromEntries(keys.map((key) => [key, String(selected[key] || "")]));
+  }
+
+  if (resource === "productos" || resource === "repuestos") {
+    const hasPrice = String(selected.precio ?? "").trim() !== "";
+    const image = String(selected.imagenPrincipal || "");
+    return {
+      ...selected,
+      tipo: resource === "repuestos" ? "repuesto" : "producto",
+      slug: String(selected.slug || slugifyText(String(selected.nombre || ""))),
+      mostrarPrecio: hasPrice,
+      etiquetaPrecio: hasPrice ? getCurrency(selected) : "Consultar precio",
+      imagenes: normalizeImageList(selected.imagenes, image),
+      tags: normalizeStringArray(selected.tags),
+      caracteristicas: normalizeStringArray(selected.caracteristicas),
+      aplicaciones: normalizeStringArray(selected.aplicaciones),
+      compatibilidad: normalizeStringArray(selected.compatibilidad),
+      especificaciones: normalizeSpecArray(selected.especificaciones),
+    };
+  }
+
+  return selected;
+}
+
+function settingsRowsToForm(rows: Record<string, unknown>[]) {
+  return rows.reduce<Record<string, unknown>>((acc, row) => {
+    const key = String(row.clave || "");
+    if (key) acc[key] = row.valor || "";
+    return acc;
+  }, {});
+}
+
+function updateImageField(current: Record<string, unknown>, field: string, url: string) {
+  if (field === "imagenes") {
+    const existing = parseJsonArray<string>(current.imagenes).filter(Boolean);
+    return { ...current, imagenes: JSON.stringify([...existing, url]) };
+  }
+  return { ...current, [field]: url };
+}
+
+function getCurrency(value: Record<string, unknown>) {
+  const currency = String(value.moneda || value.etiquetaPrecio || "PEN").toUpperCase();
+  return currency === "USD" ? "USD" : "PEN";
+}
+
+function firstImageUrl(value: unknown) {
+  const text = String(value || "");
+  if (!text) return "";
+  if (text.startsWith("/uploads/") || text.startsWith("/") || text.startsWith("http") || text.startsWith("blob:")) return text;
+  const parsed = parseJsonArray<string>(text);
+  return parsed[0] || "";
+}
+
+function normalizeImageList(value: unknown, mainImage: string) {
+  const images = parseJsonArray<string>(value);
+  if (mainImage && !images.includes(mainImage)) images.unshift(mainImage);
+  return JSON.stringify(images.filter(Boolean));
+}
+
+function normalizeStringArray(value: unknown) {
+  if (!value) return "[]";
+  if (typeof value !== "string") return JSON.stringify(value);
+  const trimmed = value.trim();
+  if (!trimmed) return "[]";
+  const parsed = parseJsonArray<unknown>(trimmed);
+  if (parsed.length > 0) return JSON.stringify(parsed);
+  return JSON.stringify(trimmed.split(/[\n,]+/).map((item) => item.trim()).filter(Boolean));
+}
+
+function normalizeSpecArray(value: unknown) {
+  if (!value) return "[]";
+  if (typeof value !== "string") return JSON.stringify(value);
+  const trimmed = value.trim();
+  if (!trimmed) return "[]";
+  const parsed = parseJsonArray<unknown>(trimmed);
+  if (parsed.length > 0) return JSON.stringify(parsed);
+  return JSON.stringify(
+    trimmed
+      .split(/\n+/)
+      .map((line) => {
+        const [clave, ...rest] = line.split(":");
+        return { clave: clave.trim(), valor: rest.join(":").trim() };
+      })
+      .filter((item) => item.clave && item.valor)
+  );
+}
+
+function parseJsonArray<T = unknown>(value?: unknown): T[] {
+  if (!value || typeof value !== "string") return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function isLongField(field: string) {
+  return [
     "descripcionLarga",
     "descripcion",
     "mensaje",
@@ -381,44 +1143,59 @@ function Field({
     "imagenes",
     "tags",
   ].includes(field);
-  const isUpload = field.toLowerCase().includes("imagen") || field === "logo";
+}
 
-  if (isBoolean) {
-    return (
-      <label className="flex items-center justify-between rounded-2xl border border-neutral-200 px-4 py-3 text-sm font-bold">
-        {label(field)}
-        <input type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(event.target.checked)} />
-      </label>
-    );
-  }
+function isUploadField(field: string) {
+  const lower = field.toLowerCase();
+  return lower.includes("imagen") || lower.includes("logo") || lower.includes("favicon");
+}
 
-  return (
-    <label className="block text-sm font-bold">
-      {label(field)}
-      {isLong ? (
-        <textarea value={String(value ?? "")} onChange={(event) => onChange(event.target.value)} className="mt-2 min-h-24 w-full rounded-2xl border border-neutral-200 px-4 py-3 outline-none" />
-      ) : (
-        <input value={String(value ?? "")} onChange={(event) => onChange(event.target.value)} className="mt-2 h-11 w-full rounded-2xl border border-neutral-200 px-4 outline-none" />
-      )}
-      {isUpload && (
-        <span className="mt-2 inline-flex cursor-pointer items-center gap-2 rounded-xl bg-neutral-100 px-3 py-2 text-xs font-black">
-          <Upload size={14} /> Subir archivo
-          <input type="file" onChange={onUpload} className="hidden" />
-        </span>
-      )}
-    </label>
-  );
+function isNumericField(field: string) {
+  return ["orden", "rating", "monto", "overlayOpacity", "precio", "precioAnterior"].includes(field);
 }
 
 function label(field: string) {
-  return field.replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase());
+  const custom: Record<string, string> = {
+    categoryId: "Categoría",
+    codigoRef: "Código ref.",
+    descripcionCorta: "Descripción corta",
+    descripcionLarga: "Descripción larga",
+    imagenPrincipal: "Imagen principal",
+    imagenDesktop: "Imagen desktop",
+    imagenMobile: "Imagen mobile",
+    seoTitulo: "SEO título",
+    seoDesc: "SEO descripción",
+    productoServicio: "Producto o servicio",
+  };
+  return custom[field] || field.replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase());
+}
+
+function tooltip(field: string) {
+  const custom: Record<string, string> = {
+    slug: "Parte final de la URL. Se genera automáticamente cuando está vacío.",
+    activo: "Controla si el registro aparece o queda disponible.",
+    orden: "Número para ordenar elementos en la web.",
+    imagenes: "Galería de imágenes. Puedes subir una imagen y luego guardar.",
+    logo: "Logo de la marca en formato JPG, PNG o WebP.",
+    estado: "Estado interno para seguimiento del equipo administrativo.",
+  };
+  return custom[field] || "Campo editable del registro.";
 }
 
 function recordTitle(item: Record<string, unknown>) {
-  return String(item.nombre || item.titulo || item.pregunta || item.email || item.clave || item.id);
+  return String(item.nombre || item.titulo || item.pregunta || item.email || item.clave || item.documento || item.id);
 }
 
 function formatDate(value: unknown) {
   if (!value) return "-";
   return new Date(String(value)).toLocaleDateString("es-PE");
+}
+
+function slugifyText(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }

@@ -16,9 +16,11 @@ type Suggestion = {
 export default function SiteHeader({
   whatsapp,
   whatsappDisplay,
+  logo = "/logo.png",
 }: {
   whatsapp: string;
   whatsappDisplay: string;
+  logo?: string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -77,7 +79,7 @@ export default function SiteHeader({
     <header className="sticky top-0 z-50 border-b border-neutral-100 bg-white/95 backdrop-blur-2xl">
       <nav className="mx-auto flex max-w-[1540px] items-center justify-between gap-3 px-4 py-3 sm:px-5 lg:px-14">
         <Link href="/" className="relative h-12 w-[150px] shrink-0 lg:h-14 lg:w-[196px]">
-          <Image src="/logo.png" alt="Tecnova Perú" fill sizes="196px" className="object-contain object-left" />
+          <Image src={logo} alt="Tecnova Perú" fill sizes="196px" className="object-contain object-left" />
         </Link>
 
         <div className="hidden items-center gap-6 text-sm font-black text-neutral-700 xl:flex">

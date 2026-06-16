@@ -1,4 +1,5 @@
 import { createAdmin, listAdmin } from "@/lib/admin-handlers";
+import { requireAdmin } from "@/lib/auth";
 import { fail, ok, readJson } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 import type { NextRequest } from "next/server";
@@ -15,6 +16,7 @@ export function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    await requireAdmin();
     const input = await readJson<Record<string, string>>(request);
     const updates = await Promise.all(
       Object.entries(input).map(([clave, valor]) =>

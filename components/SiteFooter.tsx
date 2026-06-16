@@ -7,6 +7,9 @@ export default function SiteFooter({
 }: {
   settings: Record<string, string>;
 }) {
+  const footerLogo = settings.logo_footer || "/logo.png";
+  const copyright = settings.copyright_texto || "© 2026 Tecnova Perú. Todos los derechos reservados.";
+  const designer = settings.designer_texto || "Diseñado y desarrollado por Fabrizio Apaza";
   const legalLinks = [
     ["Libro de Reclamaciones", "/libro-de-reclamaciones"],
     ["Política de Privacidad", "/politica-privacidad"],
@@ -22,7 +25,7 @@ export default function SiteFooter({
         <div className="grid gap-10 border-b border-neutral-200 pb-10 lg:grid-cols-[1.15fr_0.8fr_0.8fr_1fr]">
           <div>
             <div className="relative h-16 w-[212px] max-w-full">
-              <Image src="/logo.png" alt="Tecnova Perú" fill sizes="212px" className="object-contain object-left" />
+              <Image src={footerLogo} alt="Tecnova Perú" fill sizes="212px" className="object-contain object-left" />
             </div>
             <p className="mt-5 max-w-sm text-sm font-semibold leading-7 text-tecnova-steel">
               Maquinaria industrial, repuestos y servicio técnico para panificación, producción alimentaria y automatización.
@@ -73,8 +76,8 @@ export default function SiteFooter({
           </div>
         </div>
         <div className="mt-8 flex flex-col justify-between gap-3 text-sm font-bold text-tecnova-steel lg:flex-row">
-          <span>© 2026 Tecnova Perú. Todos los derechos reservados.</span>
-          <span>Infraestructura local preparada para VPS, Cloudflare y archivos propios.</span>
+          <span>{copyright}</span>
+          <span>{designer}</span>
         </div>
       </div>
     </footer>

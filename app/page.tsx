@@ -38,10 +38,12 @@ export default async function Home() {
     })),
     { name: "Servicio Técnico", slug: "servicio-tecnico", href: "/servicios" },
   ].slice(0, 5);
+  const brandLogos = brands.filter((brand) => Boolean(brand.logo));
+  const marqueeBrands = [...brandLogos, ...brandLogos];
 
   return (
     <main className="min-h-screen bg-white text-tecnova-dark">
-      <SiteHeader whatsapp={settings.whatsapp} whatsappDisplay={settings.whatsapp_display} />
+      <SiteHeader whatsapp={settings.whatsapp} whatsappDisplay={settings.whatsapp_display} logo={settings.logo_principal} />
 
       <section className="mx-auto grid max-w-[1540px] gap-5 px-4 py-5 sm:px-5 lg:grid-cols-[1.35fr_0.65fr] lg:px-14 lg:py-8">
         <article className="relative min-h-[560px] overflow-hidden rounded-[30px] bg-black text-white shadow-lift">
@@ -58,15 +60,15 @@ export default async function Home() {
               Venta de equipos, repuestos, instalación, mantenimiento y reparación para panaderías, restaurantes e industria alimentaria.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <Link href="/productos" className="inline-flex items-center gap-2 rounded-full bg-tecnova-red px-5 py-3 text-sm font-black text-white hover:bg-red-700">
+              <Link href="#productos" className="inline-flex items-center gap-2 rounded-full bg-tecnova-red px-5 py-3 text-sm font-black text-white hover:bg-red-700">
                 Ver Productos <ArrowRight size={17} />
               </Link>
-              <Link href="/repuestos" className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-black text-black hover:bg-neutral-100">
+              <Link href="#repuestos" className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-black text-black hover:bg-neutral-100">
                 Ver Repuestos <ArrowRight size={17} />
               </Link>
-              <a href={`https://wa.me/${settings.whatsapp}?text=${encodeURIComponent("Hola Tecnova, quiero solicitar una cotización.")}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full border border-white/25 px-5 py-3 text-sm font-black text-white hover:bg-white/10">
+              <Link href="/cotizacion" className="inline-flex items-center gap-2 rounded-full bg-amber-300 px-5 py-3 text-sm font-black text-black hover:bg-amber-200">
                 Solicitar Cotización
-              </a>
+              </Link>
             </div>
           </div>
         </article>
@@ -110,28 +112,26 @@ export default async function Home() {
         </div>
       </section>
 
-      <HomeCatalog title="Productos destacados" href="/productos" items={featuredProducts.map(toCatalogCard)} />
-      <HomeCatalog title="Repuestos destacados" href="/repuestos" items={featuredSpareParts.map(toCatalogCard)} />
+      <HomeCatalog id="productos" title="Productos destacados" href="/productos" items={featuredProducts.map(toCatalogCard)} />
+      <HomeCatalog id="repuestos" title="Repuestos destacados" href="/repuestos" items={featuredSpareParts.map(toCatalogCard)} />
 
-      <section className="mx-auto max-w-[1540px] px-4 py-8 sm:px-5 lg:px-14">
-        <div className="overflow-hidden rounded-[28px] bg-neutral-100 py-6 ring-1 ring-black/5">
-          <div className="mb-5 px-5 sm:px-7">
+      {brandLogos.length > 0 && (
+        <section className="mx-auto max-w-[1540px] px-4 py-8 sm:px-5 lg:px-14">
+          <div className="mb-5">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-tecnova-red">Marcas</p>
             <h2 className="mt-2 text-3xl font-black tracking-[-0.05em]">Componentes y equipos que trabajamos</h2>
           </div>
-          <div className="flex gap-4 overflow-x-auto px-5 pb-2 sm:px-7">
-            {brands.map((brand) => (
-              <div key={brand.id} className="flex h-20 min-w-[190px] items-center justify-center rounded-2xl bg-white px-6 shadow-sm ring-1 ring-black/5">
-                {brand.logo ? (
-                  <Image src={brand.logo} alt={brand.nombre} width={140} height={48} className="max-h-12 w-auto object-contain" />
-                ) : (
-                  <span className="text-lg font-black text-neutral-800">{brand.nombre}</span>
-                )}
-              </div>
-            ))}
+          <div className="brand-marquee overflow-hidden py-4">
+            <div className="brand-marquee-track flex w-max items-center gap-12">
+              {marqueeBrands.map((brand, index) => (
+                <div key={`${brand.id}-${index}`} className="flex h-20 w-44 shrink-0 items-center justify-center">
+                  <Image src={brand.logo || "/logo.png"} alt={brand.nombre} width={160} height={64} className="max-h-16 w-auto max-w-full object-contain" />
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <section className="mx-auto max-w-[1540px] px-4 py-8 sm:px-5 lg:px-14">
         <div className="mb-6 flex items-end justify-between gap-4">
@@ -196,16 +196,18 @@ export default async function Home() {
 }
 
 function HomeCatalog({
+  id,
   title,
   href,
   items,
 }: {
+  id: string;
   title: string;
   href: string;
   items: ReturnType<typeof toCatalogCard>[];
 }) {
   return (
-    <section className="mx-auto max-w-[1540px] px-4 py-8 sm:px-5 lg:px-14">
+    <section id={id} className="scroll-mt-28 mx-auto max-w-[1540px] px-4 py-8 sm:px-5 lg:px-14">
       <div className="mb-6 flex items-end justify-between gap-4">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-tecnova-red">Catálogo Tecnova</p>

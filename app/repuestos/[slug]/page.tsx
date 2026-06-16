@@ -49,7 +49,7 @@ export default async function SparePartPage({ params }: Props) {
 
   return (
     <main className="min-h-screen bg-white text-tecnova-dark">
-      <SiteHeader whatsapp={settings.whatsapp} whatsappDisplay={settings.whatsapp_display} />
+      <SiteHeader whatsapp={settings.whatsapp} whatsappDisplay={settings.whatsapp_display} logo={settings.logo_principal} />
       <SparePartDetail product={product} related={related} whatsapp={settings.whatsapp} />
       <SiteFooter settings={settings} />
     </main>

@@ -21,7 +21,7 @@ export default async function NosotrosPage() {
 
   return (
     <main className="min-h-screen bg-white text-tecnova-dark">
-      <SiteHeader whatsapp={settings.whatsapp} whatsappDisplay={settings.whatsapp_display} />
+      <SiteHeader whatsapp={settings.whatsapp} whatsappDisplay={settings.whatsapp_display} logo={settings.logo_principal} />
       <section className="mx-auto max-w-[1540px] px-4 py-10 sm:px-5 lg:px-14">
         <div className="grid gap-7 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="rounded-[30px] bg-black p-7 text-white shadow-lift sm:p-10">

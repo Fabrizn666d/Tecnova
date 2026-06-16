@@ -62,6 +62,7 @@ export function toInt(value: unknown, fallback = 0) {
 }
 
 export function toFloat(value: unknown) {
+  if (value === "" || value === null || typeof value === "undefined") return null;
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
 }
@@ -206,7 +207,7 @@ export function buildResourceData(resource: ResourceName, input: RecordData) {
       return {
         nombre: cleanText(input.nombre, 120),
         email: cleanText(input.email, 160).toLowerCase(),
-        rol: cleanText(input.rol || "admin", 30),
+        rol: normalizeRole(input.rol),
         activo: toBool(input.activo, true),
       };
     case "configuracion":
@@ -241,4 +242,11 @@ export function buildResourceData(resource: ResourceName, input: RecordData) {
         estado: cleanText(input.estado || "nuevo", 40),
       };
   }
+}
+
+function normalizeRole(value: unknown) {
+  const role = cleanText(value || "ADMIN", 30).toUpperCase().replace(/-/g, "_");
+  if (role === "SUPERADMIN" || role === "SUPER_ADMIN") return "SUPER_ADMIN";
+  if (role === "EDITOR") return "EDITOR";
+  return "ADMIN";
 }

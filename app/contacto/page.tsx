@@ -14,7 +14,7 @@ export default async function ContactoPage() {
   const settings = await getSettingsMap();
   return (
     <main className="min-h-screen bg-white text-tecnova-dark">
-      <SiteHeader whatsapp={settings.whatsapp} whatsappDisplay={settings.whatsapp_display} />
+      <SiteHeader whatsapp={settings.whatsapp} whatsappDisplay={settings.whatsapp_display} logo={settings.logo_principal} />
       <section className="mx-auto grid max-w-[1300px] gap-7 px-4 py-10 sm:px-5 lg:grid-cols-[0.8fr_1.2fr] lg:px-14">
         <div className="rounded-[30px] bg-black p-7 text-white shadow-lift sm:p-10">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-red-200">Contacto</p>

@@ -28,7 +28,7 @@ export default async function ProductosPage({
 
   return (
     <main className="min-h-screen bg-white text-tecnova-dark">
-      <SiteHeader whatsapp={settings.whatsapp} whatsappDisplay={settings.whatsapp_display} />
+      <SiteHeader whatsapp={settings.whatsapp} whatsappDisplay={settings.whatsapp_display} logo={settings.logo_principal} />
       <CatalogHero
         eyebrow="Catálogo de productos"
         title="Equipos industriales para producción"

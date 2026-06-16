@@ -8,6 +8,9 @@ export const runtime = "nodejs";
 export async function POST(request: NextRequest) {
   try {
     const input = await readJson<Record<string, unknown>>(request);
+    if (String(input.aceptacion || "") !== "true") {
+      return fail("Debes aceptar el tratamiento de datos para registrar la solicitud.");
+    }
     const complaint = await prisma.complaint.create({
       data: {
         nombre: cleanText(input.nombre, 120),
@@ -25,6 +28,6 @@ export async function POST(request: NextRequest) {
 
     return ok(complaint, { status: 201 });
   } catch (error) {
-    return fail(error instanceof Error ? error.message : "No se pudo registrar la reclamacion.");
+    return fail(error instanceof Error ? error.message : "No se pudo registrar la reclamación.");
   }
 }

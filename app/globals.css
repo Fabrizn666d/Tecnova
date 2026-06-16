@@ -50,6 +50,23 @@ img {
   display: none;
 }
 
+.brand-marquee-track {
+  animation: brand-marquee 28s linear infinite;
+}
+
+.brand-marquee:hover .brand-marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes brand-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
 ::selection {
   background: #b11226;
   color: white;
