@@ -1,0 +1,247 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  nombre      String
+  slug        String    @unique
+  descripcion String?
+  icono       String?
+  imagen      String?
+  color       String?
+  orden       Int       @default(0)
+  activo      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  productos   Product[]
+}
+
+model Product {
+  id                String      @id @default(cuid())
+  tipo              String      @default("producto")
+  nombre            String
+  slug              String      @unique
+  subtitulo         String?
+  descripcionCorta  String
+  descripcionLarga  String?
+  categoryId        String
+  category          Category    @relation(fields: [categoryId], references: [id])
+  marca             String?
+  modelo            String?
+  codigoRef         String?
+  condicion         String      @default("nuevo")
+  precio            Float?
+  precioAnterior    Float?
+  mostrarPrecio     Boolean     @default(false)
+  etiquetaPrecio    String?
+  imagenes          String      @default("[]")
+  imagenPrincipal   String?
+  especificaciones  String      @default("[]")
+  caracteristicas   String      @default("[]")
+  aplicaciones      String      @default("[]")
+  compatibilidad    String      @default("[]")
+  archivos          String      @default("[]")
+  activo            Boolean     @default(true)
+  destacado         Boolean     @default(false)
+  ordenDestacado    Int?
+  destacadoRepuesto Boolean     @default(false)
+  ordenRepuesto     Int?
+  nuevo             Boolean     @default(false)
+  disponible        Boolean     @default(true)
+  etiqueta          String?
+  seoTitulo         String?
+  seoDesc           String?
+  vistas            Int         @default(0)
+  cotizaciones      Int         @default(0)
+  tags              String      @default("[]")
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  cotizacionItems   QuoteItem[]
+}
+
+model Lead {
+  id        String   @id @default(cuid())
+  nombre    String?
+  telefono  String?
+  email     String?
+  consulta  String
+  fuente    String   @default("contacto")
+  estado    String   @default("nuevo")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Complaint {
+  id               String   @id @default(cuid())
+  nombre           String
+  documento        String
+  telefono         String?
+  email            String?
+  direccion        String?
+  tipo             String   @default("reclamo")
+  productoServicio String?
+  monto            Float?
+  detalle          String
+  pedido           String
+  estado           String   @default("nuevo")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Service {
+  id               String   @id @default(cuid())
+  nombre           String
+  slug             String   @unique
+  descripcion      String
+  descripcionLarga String?
+  icono            String?
+  imagen           String?
+  caracteristicas  String   @default("[]")
+  orden            Int      @default(0)
+  activo           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Project {
+  id          String    @id @default(cuid())
+  titulo      String
+  slug        String    @unique
+  descripcion String?
+  cliente     String?
+  ubicacion   String?
+  fecha       DateTime?
+  imagenes    String    @default("[]")
+  categoria   String?
+  destacado   Boolean   @default(false)
+  activo      Boolean   @default(true)
+  orden       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Banner {
+  id             String    @id @default(cuid())
+  titulo         String
+  subtitulo      String?
+  descripcion    String?
+  ctaTexto       String?
+  ctaLink        String?
+  ctaTipo        String    @default("link")
+  ctaTexto2      String?
+  ctaLink2       String?
+  imagenDesktop  String?
+  imagenMobile   String?
+  colorTexto     String    @default("light")
+  overlay        Boolean   @default(true)
+  overlayOpacity Float     @default(0.5)
+  posicion       String    @default("hero")
+  activo         Boolean   @default(true)
+  orden          Int       @default(0)
+  fechaInicio    DateTime?
+  fechaFin       DateTime?
+  clics          Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model Brand {
+  id     String  @id @default(cuid())
+  nombre String
+  logo   String?
+  url    String?
+  orden  Int     @default(0)
+  activo Boolean @default(true)
+}
+
+model Quote {
+  id        String      @id @default(cuid())
+  nombre    String?
+  telefono  String?
+  email     String?
+  mensaje   String?
+  fuente    String      @default("whatsapp")
+  estado    String      @default("nuevo")
+  notas     String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  items     QuoteItem[]
+}
+
+model QuoteItem {
+  id        String  @id @default(cuid())
+  quoteId   String
+  quote     Quote   @relation(fields: [quoteId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  cantidad  Int     @default(1)
+  nota      String?
+}
+
+model FAQ {
+  id        String  @id @default(cuid())
+  pregunta  String
+  respuesta String
+  categoria String?
+  orden     Int     @default(0)
+  activo    Boolean @default(true)
+}
+
+model Testimonial {
+  id        String   @id @default(cuid())
+  nombre    String
+  empresa   String?
+  cargo     String?
+  mensaje   String
+  rating    Int      @default(5)
+  imagen    String?
+  activo    Boolean  @default(true)
+  orden     Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  clave     String   @unique
+  valor     String
+  tipo      String   @default("string")
+  grupo     String   @default("general")
+  label     String?
+  updatedAt DateTime @updatedAt
+}
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  nombre       String
+  email        String    @unique
+  password     String
+  rol          String    @default("admin")
+  activo       Boolean   @default(true)
+  ultimoAcceso DateTime?
+  createdAt    DateTime  @default(now())
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  userName  String?
+  accion    String
+  modulo    String
+  detalle   String?
+  ip        String?
+  createdAt DateTime @default(now())
+}
+
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  email     String
+  ip        String
+  success   Boolean  @default(false)
+  createdAt DateTime @default(now())
+}

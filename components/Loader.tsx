@@ -12,18 +12,22 @@ export default function Loader() {
     const seen = sessionStorage.getItem("tecnova-loader-seen");
 
     if (!seen) {
-      setShow(true);
       sessionStorage.setItem("tecnova-loader-seen", "true");
 
+      const startTimer = setTimeout(() => setShow(true), 0);
       const timer = setTimeout(() => {
         setShow(false);
         setReady(true);
       }, 2400);
 
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(startTimer);
+        clearTimeout(timer);
+      };
     }
 
-    setReady(true);
+    const readyTimer = setTimeout(() => setReady(true), 0);
+    return () => clearTimeout(readyTimer);
   }, []);
 
   useEffect(() => {
