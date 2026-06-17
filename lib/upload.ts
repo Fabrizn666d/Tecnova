@@ -4,7 +4,8 @@ import path from "path";
 import sharp from "sharp";
 
 const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
-const maxUploadSize = 5 * 1024 * 1024;
+const unsupportedAppleTypes = new Set(["image/heic", "image/heif"]);
+const maxUploadSize = 10 * 1024 * 1024;
 
 export function getUploadDir() {
   return process.env.UPLOAD_DIR
@@ -14,7 +15,15 @@ export function getUploadDir() {
 
 export async function saveUpload(file: File, folder = "general") {
   if (file.size > maxUploadSize) {
-    throw new Error("El archivo excede el tamaño máximo permitido de 5MB.");
+    throw new Error("La imagen excede el tamaño máximo permitido de 10MB.");
+  }
+
+  if (unsupportedAppleTypes.has(file.type)) {
+    throw new Error("Formato HEIC/HEIF no compatible. Convierte la imagen a JPG, PNG o WebP antes de subirla.");
+  }
+
+  if (!allowedTypes.has(file.type)) {
+    throw new Error("Formato no permitido. Usa JPG, JPEG, PNG o WebP.");
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
@@ -22,17 +31,18 @@ export async function saveUpload(file: File, folder = "general") {
   const uploadDir = getUploadDir();
   await mkdir(uploadDir, { recursive: true });
 
-  if (!allowedTypes.has(file.type)) {
-    throw new Error("Formato no permitido. Usa JPG, JPEG, PNG o WebP.");
-  }
-
   const filename = `${safeFolder}-${randomUUID()}.webp`;
   const fullPath = path.join(uploadDir, filename);
-  await sharp(buffer)
-    .rotate()
-    .resize({ width: 1800, withoutEnlargement: true })
-    .webp({ quality: 82 })
-    .toFile(fullPath);
+
+  try {
+    await sharp(buffer)
+      .rotate()
+      .resize({ width: 1800, withoutEnlargement: true })
+      .webp({ quality: 82 })
+      .toFile(fullPath);
+  } catch {
+    throw new Error("No se pudo procesar la imagen. Puede estar corrupta o tener un formato no compatible.");
+  }
 
   return `/uploads/${filename}`;
 }

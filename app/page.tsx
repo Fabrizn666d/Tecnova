@@ -95,6 +95,9 @@ export default async function Home() {
             <Wrench className="h-10 w-10 text-tecnova-red" />
             <h2 className="mt-6 text-3xl font-black leading-none">Repuestos para hornos y líneas industriales</h2>
             <p className="mt-4 text-sm font-semibold leading-6 text-tecnova-steel">Motores, tableros, controladores, resistencias, termostatos y componentes técnicos.</p>
+            <Link href="/repuestos" className="mt-6 inline-flex items-center gap-2 text-sm font-black text-tecnova-red">
+              Ver repuestos <ArrowRight size={16} />
+            </Link>
           </div>
         </aside>
       </section>

@@ -59,8 +59,6 @@ export async function createAdmin(request: NextRequest, resource: ResourceName) 
     const input = await readJson<Record<string, unknown>>(request);
     const delegate = modelDelegate(prisma, resource);
     const data = buildResourceData(resource, input);
-    logImageDebug("create:input", resource, input);
-    logImageDebug("create:data", resource, data);
 
     if (resource === "usuarios") {
       const password = String(input.password || "");
@@ -72,7 +70,6 @@ export async function createAdmin(request: NextRequest, resource: ResourceName) 
     }
 
     const item = await delegate.create({ data });
-    logImageDebug("create:item", resource, item as Record<string, unknown>);
     await logActivity(admin, `crear:${resource}`, resource, JSON.stringify({ id: itemId(item) }));
     return ok(withoutPassword(item), { status: 201 });
   } catch (error) {
@@ -108,8 +105,6 @@ export async function updateAdmin(request: NextRequest, resource: ResourceName, 
     const { id } = await context.params;
     const input = await readJson<Record<string, unknown>>(request);
     const data = buildResourceData(resource, input);
-    logImageDebug("update:input", resource, input);
-    logImageDebug("update:data", resource, data);
 
     if (resource === "usuarios") {
       if (id === admin.id && data.activo === false) {
@@ -132,7 +127,6 @@ export async function updateAdmin(request: NextRequest, resource: ResourceName, 
     }
 
     const item = await modelDelegate(prisma, resource).update({ where: { id }, data });
-    logImageDebug("update:item", resource, item as Record<string, unknown>);
     await logActivity(admin, `actualizar:${resource}`, resource, JSON.stringify({ id }));
     return ok(withoutPassword(item));
   } catch (error) {
@@ -249,13 +243,4 @@ function failFromError(error: unknown, fallback: string) {
   const normalized = message.toLowerCase();
   const status = normalized.includes("autoriz") || normalized.includes("autentic") ? 401 : 400;
   return fail(message || fallback, status);
-}
-
-function logImageDebug(stage: string, resource: ResourceName, value: Record<string, unknown>) {
-  if (resource !== "productos" && resource !== "repuestos") return;
-  console.info(`[admin:image:${stage}]`, {
-    nombre: value.nombre,
-    imagenPrincipal: value.imagenPrincipal,
-    imagenes: value.imagenes,
-  });
 }

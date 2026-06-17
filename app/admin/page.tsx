@@ -275,10 +275,15 @@ const configGroups: { title: string; fields: FieldConfig[] }[] = [
     ],
   },
   {
-    title: "SEO y textos",
+    title: "SEO",
     fields: [
       { key: "seo_titulo", label: "SEO título", tooltip: "Título principal del sitio." },
       { key: "seo_descripcion", label: "SEO descripción", tooltip: "Descripción general del sitio.", type: "textarea" },
+    ],
+  },
+  {
+    title: "Footer",
+    fields: [
       { key: "copyright_texto", label: "Texto copyright", tooltip: "Texto inferior izquierdo del footer." },
       { key: "designer_texto", label: "Texto diseñador", tooltip: "Texto inferior derecho del footer. Ejemplo: Designed and developed by Fabrizio Apaza." },
       { key: "footer_descripcion", label: "Descripcion footer", tooltip: "Texto descriptivo principal del pie de pagina.", type: "textarea" },
@@ -438,14 +443,6 @@ export default function AdminPage() {
       const currentSelected = selectedRef.current;
       const id = currentSelected.id;
       const payload = preparePayload(activeResource, currentSelected);
-      if (activeResource === "productos" || activeResource === "repuestos") {
-        console.info("[admin:image:save-payload]", {
-          resource: activeResource,
-          nombre: payload.nombre,
-          imagenPrincipal: payload.imagenPrincipal,
-          imagenes: payload.imagenes,
-        });
-      }
       const response = await fetch(
         activeResource === "configuracion"
           ? "/api/admin/configuracion"
@@ -469,6 +466,35 @@ export default function AdminPage() {
         refreshSummary(),
         activeResource === "categorias" ? loadCategories() : Promise.resolve(),
       ]);
+    } catch {
+      setMessage("No se pudo guardar. Revisa los campos e intenta nuevamente.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveConfigGroup(group: { title: string; fields: FieldConfig[] }) {
+    setMessage("");
+    setSaving(true);
+    try {
+      const currentSelected = selectedRef.current;
+      const payload = Object.fromEntries(
+        group.fields
+          .map((field) => [field.key, currentSelected[field.key]] as const)
+          .filter(([, value]) => typeof value !== "undefined")
+      );
+      const response = await fetch("/api/admin/configuracion", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const result = await safeJson(response);
+      if (!response.ok || !result.ok) {
+        setMessage(result.message || "No se pudo guardar el bloque.");
+        return;
+      }
+      setMessage(`Cambios guardados correctamente: ${group.title}.`);
+      await load();
     } catch {
       setMessage("No se pudo guardar. Revisa los campos e intenta nuevamente.");
     } finally {
@@ -511,12 +537,16 @@ export default function AdminPage() {
     if (files.length === 0 || !activeResource) return;
 
     const allowed = ["image/jpeg", "image/png", "image/webp"];
+    if (files.some((file) => file.type === "image/heic" || file.type === "image/heif")) {
+      setMessage("Formato HEIC/HEIF no compatible. Usa JPG, PNG o WebP.");
+      return;
+    }
     if (files.some((file) => !allowed.includes(file.type))) {
       setMessage("Formato no permitido. Usa JPG, JPEG, PNG o WebP.");
       return;
     }
-    if (files.some((file) => file.size > 5 * 1024 * 1024)) {
-      setMessage("La imagen no debe superar 5MB.");
+    if (files.some((file) => file.size > 10 * 1024 * 1024)) {
+      setMessage("La imagen no debe superar 10MB.");
       return;
     }
 
@@ -542,13 +572,6 @@ export default function AdminPage() {
 
       updateSelected((current) => {
         const next = updateImageField(current, field, urls);
-        const imageState = next as Record<string, unknown>;
-        console.info("[admin:image:upload-state]", {
-          field,
-          urls,
-          imagenPrincipal: imageState.imagenPrincipal,
-          imagenes: imageState.imagenes,
-        });
         return next;
       });
       setUploadPreviews((current) => ({ ...current, [field]: urls[0] || "" }));
@@ -807,6 +830,8 @@ export default function AdminPage() {
                     uploadingField={uploadingField}
                     onChange={(field, value) => updateSelected((current) => ({ ...current, [field]: value }))}
                     onUpload={upload}
+                    onSaveGroup={saveConfigGroup}
+                    saving={saving}
                   />
                 ) : activeResource === "usuarios" ? (
                   <UserForm selected={selected} onChange={(field, value) => updateSelected((current) => ({ ...current, [field]: value }))} />
@@ -825,9 +850,11 @@ export default function AdminPage() {
               </div>
 
               {message && <p className="mt-4 rounded-lg bg-neutral-100 p-3 text-sm font-bold">{message}</p>}
-              <button disabled={saving || !activeResource} className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-tecnova-red text-sm font-black text-white transition hover:bg-red-700 disabled:opacity-60">
-                {saving ? <Loader2 size={17} className="animate-spin" /> : <Save size={17} />} Guardar cambios
-              </button>
+              {activeResource !== "configuracion" && (
+                <button disabled={saving || !activeResource} className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-tecnova-red text-sm font-black text-white transition hover:bg-red-700 disabled:opacity-60">
+                  {saving ? <Loader2 size={17} className="animate-spin" /> : <Save size={17} />} Guardar cambios
+                </button>
+              )}
             </form>
           </div>
         )}
@@ -953,18 +980,32 @@ function ConfigForm({
   uploadingField,
   onChange,
   onUpload,
+  onSaveGroup,
+  saving,
 }: {
   selected: Record<string, unknown>;
   uploadPreviews: Record<string, string>;
   uploadingField: string;
   onChange: (field: string, value: unknown) => void;
   onUpload: (event: ChangeEvent<HTMLInputElement>, field: string) => void;
+  onSaveGroup: (group: { title: string; fields: FieldConfig[] }) => void;
+  saving: boolean;
 }) {
   return (
     <div className="space-y-7">
       {configGroups.map((group) => (
         <section key={group.title} className="space-y-4 border-b border-neutral-100 pb-5 last:border-0 last:pb-0">
-          <h4 className="text-lg font-black">{group.title}</h4>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h4 className="text-lg font-black">{group.title}</h4>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => onSaveGroup(group)}
+              className="inline-flex h-10 items-center gap-2 rounded-lg bg-tecnova-red px-4 text-xs font-black text-white transition hover:bg-red-700 disabled:opacity-60"
+            >
+              {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Guardar {group.title.toLowerCase()}
+            </button>
+          </div>
           <div className="grid gap-4 md:grid-cols-2">
             {group.fields.map((field) => (
               field.type === "upload" ? (

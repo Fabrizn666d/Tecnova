@@ -23,15 +23,20 @@ export const revalidate = 0;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const product = await prisma.product.findFirst({ where: { slug, activo: true, tipo: "producto" } });
+  const product = await prisma.product.findFirst({ where: { slug, activo: true, tipo: "producto" }, include: { category: true } });
   if (!product) return { title: "Producto no encontrado | Tecnova Perú" };
+  const image = productImage(product);
+  const keywords = parseJsonArray<string>(product.tags).join(", ");
   return {
     title: product.seoTitulo || `${product.nombre} | Tecnova Perú`,
     description: product.seoDesc || product.descripcionCorta,
+    keywords: keywords || `${product.nombre}, ${product.category.nombre}, ${product.marca || "Tecnova"}, maquinaria industrial Perú`,
+    alternates: { canonical: `/productos/${product.slug}` },
     openGraph: {
       title: product.seoTitulo || product.nombre,
       description: product.seoDesc || product.descripcionCorta,
-      images: product.imagenPrincipal ? [product.imagenPrincipal] : undefined,
+      images: image ? [image] : undefined,
+      type: "website",
     },
   };
 }
@@ -60,24 +65,18 @@ export default async function ProductPage({ params }: Props) {
   );
 }
 
-function ProductDetail({
-  product,
-  related,
-  whatsapp,
-}: {
-  product: ProductWithCategory;
-  related: ProductWithCategory[];
-  whatsapp: string;
-}) {
+function ProductDetail({ product, related, whatsapp }: { product: ProductWithCategory; related: ProductWithCategory[]; whatsapp: string }) {
   const images = [productImage(product), ...parseJsonArray<string>(product.imagenes).map((image) => safeImagePath(image))].filter(Boolean);
   const uniqueImages = Array.from(new Set(images));
   const specs = parseJsonArray<SpecItem>(product.especificaciones);
   const features = parseJsonArray<string>(product.caracteristicas);
   const applications = parseJsonArray<string>(product.aplicaciones);
   const card = toCatalogCard(product);
+  const jsonLd = buildProductJsonLd(product, uniqueImages[0]);
 
   return (
     <section className="mx-auto max-w-[1540px] px-4 py-8 sm:px-5 lg:px-14">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <div className="grid gap-7 lg:grid-cols-[1.05fr_0.95fr]">
         <ProductGallery images={uniqueImages} alt={product.nombre} />
 
@@ -151,6 +150,27 @@ function ProductDetail({
       )}
     </section>
   );
+}
+
+function buildProductJsonLd(product: ProductWithCategory, image: string) {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tecnovaperu.com";
+  return {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.nombre,
+    description: product.seoDesc || product.descripcionCorta,
+    image: image ? [`${baseUrl}${image}`] : undefined,
+    brand: { "@type": "Brand", name: product.marca || "Tecnova" },
+    category: product.category.nombre,
+    sku: product.codigoRef || product.slug,
+    offers: {
+      "@type": "Offer",
+      price: product.precio ?? undefined,
+      priceCurrency: "PEN",
+      availability: product.disponible ? "https://schema.org/InStock" : "https://schema.org/PreOrder",
+      url: `${baseUrl}/productos/${product.slug}`,
+    },
+  };
 }
 
 function Info({ label, value }: { label: string; value: string }) {

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import FloatingWhatsApp from "@/components/FloatingWhatsApp";
+import Loader from "@/components/Loader";
 import { getSettingsMap } from "@/lib/settings";
 import "./globals.css";
 
@@ -44,6 +45,7 @@ export default async function RootLayout({
   return (
     <html lang="es">
       <body className={`${inter.variable} ${spaceGrotesk.variable}`}>
+        <Loader />
         {children}
         <FloatingWhatsApp whatsapp={settings.whatsapp} message={settings.mensaje_whatsapp} />
       </body>
