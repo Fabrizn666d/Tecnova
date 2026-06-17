@@ -12,6 +12,9 @@ export const metadata: Metadata = {
   description: "Historia, experiencia y capacidad técnica de Tecnova Perú en maquinaria industrial.",
 };
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function NosotrosPage() {
   const settings = await getSettingsMap();
   const [brands, projects, products] = await Promise.all([

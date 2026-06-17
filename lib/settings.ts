@@ -42,6 +42,20 @@ const fallbackSettings = {
     "Venta de maquinaria, repuestos y servicios técnicos para panificación e industria alimentaria.",
   copyright_texto: "© 2026 Tecnova Perú. Todos los derechos reservados.",
   designer_texto: "Designed and developed by Fabrizio Apaza",
+  footer_descripcion:
+    "Maquinaria industrial, repuestos y servicio tecnico para panificacion, produccion alimentaria y automatizacion.",
+  legal_libro_label: "Libro de Reclamaciones",
+  legal_libro_url: "/libro-de-reclamaciones",
+  legal_privacidad_label: "Politica de Privacidad",
+  legal_privacidad_url: "/politica-privacidad",
+  legal_cookies_label: "Politica de Cookies",
+  legal_cookies_url: "/politica-cookies",
+  legal_terminos_label: "Terminos y Condiciones",
+  legal_terminos_url: "/terminos-y-condiciones",
+  legal_aviso_label: "Aviso Legal",
+  legal_aviso_url: "/aviso-legal",
+  legal_cambios_label: "Cambios y Devoluciones",
+  legal_cambios_url: "/cambios-y-devoluciones",
   mensaje_whatsapp:
     "Hola Tecnova, me gustaría recibir más información sobre sus equipos y servicios.",
 };

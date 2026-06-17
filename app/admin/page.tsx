@@ -11,6 +11,7 @@ import {
   Layers,
   Loader2,
   LogOut,
+  Menu,
   MessageCircle,
   Plus,
   Save,
@@ -21,6 +22,7 @@ import {
   Trash2,
   Upload,
   Users,
+  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from "react";
@@ -272,6 +274,19 @@ const configGroups: { title: string; fields: FieldConfig[] }[] = [
       { key: "seo_descripcion", label: "SEO descripción", tooltip: "Descripción general del sitio.", type: "textarea" },
       { key: "copyright_texto", label: "Texto copyright", tooltip: "Texto inferior izquierdo del footer." },
       { key: "designer_texto", label: "Texto diseñador", tooltip: "Texto inferior derecho del footer. Ejemplo: Designed and developed by Fabrizio Apaza." },
+      { key: "footer_descripcion", label: "Descripcion footer", tooltip: "Texto descriptivo principal del pie de pagina.", type: "textarea" },
+      { key: "legal_libro_label", label: "Legal 1 texto", tooltip: "Texto del enlace legal del footer." },
+      { key: "legal_libro_url", label: "Legal 1 URL", tooltip: "Ruta o enlace del aviso legal.", type: "url" },
+      { key: "legal_privacidad_label", label: "Legal 2 texto", tooltip: "Texto del enlace legal del footer." },
+      { key: "legal_privacidad_url", label: "Legal 2 URL", tooltip: "Ruta o enlace del aviso legal.", type: "url" },
+      { key: "legal_cookies_label", label: "Legal 3 texto", tooltip: "Texto del enlace legal del footer." },
+      { key: "legal_cookies_url", label: "Legal 3 URL", tooltip: "Ruta o enlace del aviso legal.", type: "url" },
+      { key: "legal_terminos_label", label: "Legal 4 texto", tooltip: "Texto del enlace legal del footer." },
+      { key: "legal_terminos_url", label: "Legal 4 URL", tooltip: "Ruta o enlace del aviso legal.", type: "url" },
+      { key: "legal_aviso_label", label: "Legal 5 texto", tooltip: "Texto del enlace legal del footer." },
+      { key: "legal_aviso_url", label: "Legal 5 URL", tooltip: "Ruta o enlace del aviso legal.", type: "url" },
+      { key: "legal_cambios_label", label: "Legal 6 texto", tooltip: "Texto del enlace legal del footer." },
+      { key: "legal_cambios_url", label: "Legal 6 URL", tooltip: "Ruta o enlace del aviso legal.", type: "url" },
     ],
   },
 ];
@@ -292,6 +307,7 @@ export default function AdminPage() {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [uploadPreviews, setUploadPreviews] = useState<Record<string, string>>({});
   const [categories, setCategories] = useState<Record<string, unknown>[]>([]);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const isSuperAdmin = admin?.rol === "SUPER_ADMIN";
   const visibleModules = useMemo(
@@ -465,40 +481,43 @@ export default function AdminPage() {
   }
 
   async function upload(event: ChangeEvent<HTMLInputElement>, field: string) {
-    const file = event.currentTarget.files?.[0];
+    const files = Array.from(event.currentTarget.files || []);
     event.currentTarget.value = "";
-    if (!file || !activeResource) return;
+    if (files.length === 0 || !activeResource) return;
 
     const allowed = ["image/jpeg", "image/png", "image/webp"];
-    if (!allowed.includes(file.type)) {
+    if (files.some((file) => !allowed.includes(file.type))) {
       setMessage("Formato no permitido. Usa JPG, JPEG, PNG o WebP.");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
+    if (files.some((file) => file.size > 5 * 1024 * 1024)) {
       setMessage("La imagen no debe superar 5MB.");
       return;
     }
 
-    const previewUrl = URL.createObjectURL(file);
+    const previewUrl = URL.createObjectURL(files[0]);
     setUploadPreviews((current) => ({ ...current, [field]: previewUrl }));
     setUploadingField(field);
     setMessage("");
 
     try {
-      const form = new FormData();
-      form.set("file", file);
-      form.set("folder", activeResource);
-      const response = await fetch("/api/upload", { method: "POST", body: form });
-      const payload = await safeJson(response);
-      if (!response.ok || !payload.ok) {
-        setMessage(payload.message || "No se pudo subir la imagen.");
-        return;
+      const urls: string[] = [];
+      for (const file of files) {
+        const form = new FormData();
+        form.set("file", file);
+        form.set("folder", activeResource);
+        const response = await fetch("/api/upload", { method: "POST", body: form });
+        const payload = await safeJson(response);
+        if (!response.ok || !payload.ok) {
+          setMessage(payload.message || "No se pudo subir la imagen.");
+          return;
+        }
+        urls.push(String(payload.data.url || ""));
       }
 
-      const url = String(payload.data.url || "");
-      setSelected((current) => updateImageField(current, field, url));
-      setUploadPreviews((current) => ({ ...current, [field]: url }));
-      setMessage("Imagen subida. Recuerda guardar los cambios.");
+      setSelected((current) => updateImageField(current, field, urls));
+      setUploadPreviews((current) => ({ ...current, [field]: urls[0] || "" }));
+      setMessage(files.length > 1 ? "Imagenes subidas. Recuerda guardar los cambios." : "Imagen subida. Recuerda guardar los cambios.");
     } catch {
       setMessage("No se pudo subir la imagen.");
     } finally {
@@ -524,7 +543,7 @@ export default function AdminPage() {
 
   return (
     <main className="min-h-screen bg-neutral-100 text-neutral-950">
-      <aside className="fixed inset-y-0 left-0 hidden w-72 border-r border-neutral-800 bg-black p-5 text-white lg:block">
+      <aside className="fixed inset-y-0 left-0 hidden w-72 overflow-y-auto border-r border-neutral-800 bg-black p-5 text-white lg:block">
         <p className="text-xs font-black uppercase tracking-[0.2em] text-red-300">Tecnova</p>
         <h1 className="mt-2 text-3xl font-black">Panel administrativo</h1>
         <nav className="mt-8 space-y-6">
@@ -558,6 +577,54 @@ export default function AdminPage() {
         </nav>
       </aside>
 
+      {mobileNavOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 lg:hidden" role="dialog" aria-modal="true">
+          <aside className="h-full w-[min(88vw,320px)] overflow-y-auto bg-black p-5 text-white shadow-lift">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-red-300">Tecnova</p>
+                <h1 className="mt-2 text-2xl font-black">Panel administrativo</h1>
+              </div>
+              <button type="button" onClick={() => setMobileNavOpen(false)} className="grid h-10 w-10 place-items-center rounded-lg bg-white/10" aria-label="Cerrar menu">
+                <X size={18} />
+              </button>
+            </div>
+            <nav className="mt-8 space-y-6">
+              {moduleSections.map((section) => {
+                const sectionModules = visibleModules.filter((mod) => section.keys.includes(mod.key));
+                if (sectionModules.length === 0) return null;
+                return (
+                  <div key={section.title}>
+                    <p className="mb-2 px-4 text-[10px] font-black uppercase tracking-[0.18em] text-white/35">{section.title}</p>
+                    <div className="space-y-2">
+                      {sectionModules.map((mod) => {
+                        const Icon = mod.icon;
+                        return (
+                          <button
+                            key={mod.key}
+                            type="button"
+                            onClick={() => {
+                              setActive(mod.key);
+                              setMobileNavOpen(false);
+                            }}
+                            className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-black transition ${
+                              active === mod.key ? "bg-tecnova-red text-white" : "text-white/70 hover:bg-white/10 hover:text-white"
+                            }`}
+                          >
+                            <Icon size={18} />
+                            {mod.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </nav>
+          </aside>
+        </div>
+      )}
+
       <section className="lg:pl-72">
         <header className="sticky top-0 z-30 border-b border-neutral-200 bg-white/90 px-4 py-4 backdrop-blur lg:px-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -567,6 +634,9 @@ export default function AdminPage() {
               {admin && <p className="mt-1 text-sm font-bold text-neutral-500">Bienvenido, {admin.nombre}</p>}
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <button type="button" onClick={() => setMobileNavOpen(true)} className="inline-grid h-11 w-11 place-items-center rounded-lg bg-black text-white lg:hidden" aria-label="Abrir menu">
+                <Menu size={18} />
+              </button>
               <select
                 value={active}
                 onChange={(event) => setActive(event.target.value as PanelKey)}
@@ -823,6 +893,7 @@ function ProductForm({
 
       {advancedOpen && (
         <div className="space-y-4 border-t border-neutral-100 pt-4">
+          <GalleryField field="imagenes" label="Galeria de imagenes" tooltip="Sube varias imagenes, reordenalas o elimina las que no van en la ficha." value={selected.imagenes} uploading={uploadingField === "imagenes"} onUpload={onUpload} onChange={onChange} />
           {productAdvancedFields.map((field) => (
             <DynamicField key={field.key} config={field} value={selected[field.key]} onChange={onChange} />
           ))}
@@ -979,6 +1050,9 @@ function GenericForm({
           return <ToggleField key={field} field={field} label={label(field)} tooltip={tooltip(field)} value={value} onChange={onChange} />;
         }
         if (isUploadField(field)) {
+          if (field === "imagenes") {
+            return <GalleryField key={field} field={field} label={label(field)} tooltip={tooltip(field)} value={value} uploading={uploadingField === field} onUpload={onUpload} onChange={onChange} />;
+          }
           return <UploadField key={field} field={field} label={label(field)} tooltip={tooltip(field)} value={value} preview={uploadPreviews[field]} uploading={uploadingField === field} onUpload={onUpload} />;
         }
         return <TextField key={field} field={field} label={label(field)} tooltip={tooltip(field)} value={value} onChange={onChange} textarea={isLongField(field)} type={isNumericField(field) ? "number" : field === "email" ? "email" : "text"} />;
@@ -1120,6 +1194,70 @@ function UploadField({
   );
 }
 
+function GalleryField({
+  field,
+  label,
+  tooltip,
+  value,
+  uploading,
+  onUpload,
+  onChange,
+}: {
+  field: string;
+  label: string;
+  tooltip: string;
+  value: unknown;
+  uploading: boolean;
+  onUpload: (event: ChangeEvent<HTMLInputElement>, field: string) => void;
+  onChange: (field: string, value: unknown) => void;
+}) {
+  const inputId = `upload-${field}`;
+  const images = parseJsonArray<string>(value).filter(Boolean);
+
+  function update(nextImages: string[]) {
+    onChange(field, JSON.stringify(nextImages));
+  }
+
+  function move(index: number, direction: -1 | 1) {
+    const target = index + direction;
+    if (target < 0 || target >= images.length) return;
+    const next = [...images];
+    [next[index], next[target]] = [next[target], next[index]];
+    update(next);
+  }
+
+  return (
+    <div className="block text-sm font-bold">
+      <FieldLabel label={label} tooltip={tooltip} />
+      <div className="mt-2 grid gap-3">
+        {images.length > 0 ? (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {images.map((image, index) => (
+              <div key={`${image}-${index}`} className="overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50">
+                {/* eslint-disable-next-line @next/next/no-img-element -- Admin previews use uploaded public URLs. */}
+                <img src={image} alt={`${label} ${index + 1}`} className="h-28 w-full object-cover" />
+                <div className="grid grid-cols-3 gap-1 p-2">
+                  <button type="button" onClick={() => move(index, -1)} disabled={index === 0} className="rounded bg-white px-2 py-1 text-xs font-black disabled:opacity-40">Arriba</button>
+                  <button type="button" onClick={() => move(index, 1)} disabled={index === images.length - 1} className="rounded bg-white px-2 py-1 text-xs font-black disabled:opacity-40">Abajo</button>
+                  <button type="button" onClick={() => update(images.filter((_, itemIndex) => itemIndex !== index))} className="rounded bg-red-50 px-2 py-1 text-xs font-black text-tecnova-red">Quitar</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid h-28 place-items-center rounded-lg border border-dashed border-neutral-300 bg-neutral-50 px-4 text-center text-xs font-black uppercase tracking-[0.12em] text-neutral-400">
+            Sin imagenes cargadas
+          </div>
+        )}
+        <label htmlFor={inputId} className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-neutral-100 px-3 text-xs font-black transition hover:bg-neutral-200">
+          {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} Subir imagenes
+        </label>
+        <input id={inputId} type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={(event) => onUpload(event, field)} className="sr-only" />
+      </div>
+    </div>
+  );
+}
+
 function FieldLabel({ label, tooltip }: { label: string; tooltip: string }) {
   return (
     <span className="inline-flex items-center gap-1.5">
@@ -1209,12 +1347,13 @@ function settingsRowsToForm(rows: Record<string, unknown>[]) {
   }, {});
 }
 
-function updateImageField(current: Record<string, unknown>, field: string, url: string) {
+function updateImageField(current: Record<string, unknown>, field: string, urls: string[] | string) {
+  const nextUrls = Array.isArray(urls) ? urls : [urls];
   if (field === "imagenes") {
     const existing = parseJsonArray<string>(current.imagenes).filter(Boolean);
-    return { ...current, imagenes: JSON.stringify([...existing, url]) };
+    return { ...current, imagenes: JSON.stringify([...existing, ...nextUrls].filter(Boolean)) };
   }
-  return { ...current, [field]: url };
+  return { ...current, [field]: nextUrls[0] || "" };
 }
 
 function getCurrency(value: Record<string, unknown>) {

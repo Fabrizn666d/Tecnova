@@ -6,6 +6,12 @@ import sharp from "sharp";
 const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const maxUploadSize = 5 * 1024 * 1024;
 
+export function getUploadDir() {
+  return process.env.UPLOAD_DIR
+    ? path.resolve(process.env.UPLOAD_DIR)
+    : path.join(process.cwd(), "public", "uploads");
+}
+
 export async function saveUpload(file: File, folder = "general") {
   if (file.size > maxUploadSize) {
     throw new Error("El archivo excede el tamaño máximo permitido de 5MB.");
@@ -13,7 +19,7 @@ export async function saveUpload(file: File, folder = "general") {
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const safeFolder = folder.replace(/[^a-z0-9-_]/gi, "").toLowerCase() || "general";
-  const uploadDir = path.join(process.cwd(), "public", "uploads");
+  const uploadDir = getUploadDir();
   await mkdir(uploadDir, { recursive: true });
 
   if (!allowedTypes.has(file.type)) {
@@ -35,8 +41,8 @@ export async function deleteUpload(publicPath: string) {
   if (!publicPath.startsWith("/uploads/")) {
     throw new Error("Solo se pueden eliminar archivos de uploads.");
   }
-  const uploadDir = path.normalize(path.join(process.cwd(), "public", "uploads"));
-  const fullPath = path.normalize(path.join(process.cwd(), "public", publicPath));
+  const uploadDir = path.normalize(getUploadDir());
+  const fullPath = path.normalize(path.join(uploadDir, path.basename(publicPath)));
   if (!fullPath.startsWith(`${uploadDir}${path.sep}`)) {
     throw new Error("Ruta de archivo no permitida.");
   }

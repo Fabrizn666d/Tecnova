@@ -1,4 +1,5 @@
 import { readFile } from "fs/promises";
+import { getUploadDir } from "@/lib/upload";
 import path from "path";
 import { NextResponse } from "next/server";
 
@@ -23,7 +24,7 @@ export async function GET(_request: Request, { params }: Props) {
     return NextResponse.json({ ok: false, message: "Archivo no encontrado." }, { status: 404 });
   }
 
-  const uploadDir = path.normalize(path.join(process.cwd(), "public", "uploads"));
+  const uploadDir = path.normalize(getUploadDir());
   const filePath = path.normalize(path.join(uploadDir, safeName));
   if (!filePath.startsWith(`${uploadDir}${path.sep}`)) {
     return NextResponse.json({ ok: false, message: "Archivo no permitido." }, { status: 403 });

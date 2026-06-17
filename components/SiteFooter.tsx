@@ -3,21 +3,21 @@ import { Mail, MapPin, MessageCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
-export default function SiteFooter({
-  settings,
-}: {
-  settings: Record<string, string>;
-}) {
+export default function SiteFooter({ settings }: { settings: Record<string, string> }) {
   const footerLogo = settings.logo_footer || "/logo.png";
-  const copyright = repairText(settings.copyright_texto || "© 2026 Tecnova Perú. Todos los derechos reservados.");
+  const description = repairText(
+    settings.footer_descripcion ||
+      "Maquinaria industrial, repuestos y servicio tecnico para panificacion, produccion alimentaria y automatizacion."
+  );
+  const copyright = repairText(settings.copyright_texto || "© 2026 Tecnova Peru. Todos los derechos reservados.");
   const designer = repairText(settings.designer_texto || "Designed and developed by Fabrizio Apaza");
   const legalLinks = [
-    ["Libro de Reclamaciones", "/libro-de-reclamaciones"],
-    ["Política de Privacidad", "/politica-privacidad"],
-    ["Política de Cookies", "/politica-cookies"],
-    ["Términos y Condiciones", "/terminos-y-condiciones"],
-    ["Aviso Legal", "/aviso-legal"],
-    ["Cambios y Devoluciones", "/cambios-y-devoluciones"],
+    [settings.legal_libro_label || "Libro de Reclamaciones", settings.legal_libro_url || "/libro-de-reclamaciones"],
+    [settings.legal_privacidad_label || "Politica de Privacidad", settings.legal_privacidad_url || "/politica-privacidad"],
+    [settings.legal_cookies_label || "Politica de Cookies", settings.legal_cookies_url || "/politica-cookies"],
+    [settings.legal_terminos_label || "Terminos y Condiciones", settings.legal_terminos_url || "/terminos-y-condiciones"],
+    [settings.legal_aviso_label || "Aviso Legal", settings.legal_aviso_url || "/aviso-legal"],
+    [settings.legal_cambios_label || "Cambios y Devoluciones", settings.legal_cambios_url || "/cambios-y-devoluciones"],
   ] as const;
 
   return (
@@ -26,11 +26,9 @@ export default function SiteFooter({
         <div className="grid gap-10 border-b border-neutral-200 pb-10 lg:grid-cols-[1.15fr_0.8fr_0.8fr_1fr]">
           <div>
             <div className="relative h-16 w-[212px] max-w-full">
-              <Image src={footerLogo} alt="Tecnova Perú" fill sizes="212px" className="object-contain object-left" />
+              <Image src={footerLogo} alt="Tecnova Peru" fill sizes="212px" className="object-contain object-left" />
             </div>
-            <p className="mt-5 max-w-sm text-sm font-semibold leading-7 text-tecnova-steel">
-              Maquinaria industrial, repuestos y servicio técnico para panificación, producción alimentaria y automatización.
-            </p>
+            <p className="mt-5 max-w-sm text-sm font-semibold leading-7 text-tecnova-steel">{description}</p>
             <div className="mt-6 space-y-3 text-sm font-bold text-tecnova-dark">
               <p className="flex items-center gap-3"><MessageCircle size={18} />{repairText(settings.whatsapp_display)}</p>
               <p className="flex items-center gap-3 break-all"><Mail size={18} />{repairText(settings.email)}</p>
@@ -49,11 +47,11 @@ export default function SiteFooter({
           </div>
 
           <div>
-            <h3 className="text-sm font-black uppercase tracking-[0.16em]">Legal Perú</h3>
+            <h3 className="text-sm font-black uppercase tracking-[0.16em]">Legal Peru</h3>
             <div className="mt-5 grid gap-3 text-sm font-semibold text-tecnova-steel">
               {legalLinks.map(([label, href]) => (
                 <Link key={href} href={href} className="hover:text-tecnova-red">
-                  {label}
+                  {repairText(label)}
                 </Link>
               ))}
             </div>
@@ -62,12 +60,12 @@ export default function SiteFooter({
           <div>
             <h3 className="text-sm font-black uppercase tracking-[0.16em]">Datos legales</h3>
             <div className="mt-5 space-y-3 text-sm font-semibold leading-6 text-tecnova-steel">
-              <p>Razón social: {repairText(settings.razon_social || settings.empresa_nombre)}</p>
+              <p>Razon social: {repairText(settings.razon_social || settings.empresa_nombre)}</p>
               <p>RUC: {settings.ruc || "Por actualizar"}</p>
-              <p>Dirección: {repairText(settings.direccion)}</p>
+              <p>Direccion: {repairText(settings.direccion)}</p>
             </div>
             <a
-              href={`https://wa.me/${settings.whatsapp || "51937492227"}?text=${encodeURIComponent("Hola Tecnova, quiero solicitar información.")}`}
+              href={`https://wa.me/${settings.whatsapp || "51937492227"}?text=${encodeURIComponent(settings.mensaje_whatsapp || "Hola Tecnova, quiero solicitar informacion.")}`}
               target="_blank"
               rel="noreferrer"
               className="mt-6 inline-flex rounded-full bg-black px-5 py-3 text-sm font-black text-white transition hover:bg-tecnova-red"

@@ -63,13 +63,13 @@ export default function ProductCard({
         </span>
       </Link>
 
-      <div className="flex flex-1 flex-col p-5 sm:p-6">
+      <div className="flex flex-1 flex-col p-3 sm:p-6">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.16em] text-tecnova-red">
               {item.marca || "Tecnova"} {item.modelo ? `· ${item.modelo}` : ""}
             </p>
-            <Link href={href} className="mt-2 block text-xl font-black tracking-[-0.04em] transition hover:text-tecnova-red sm:text-2xl">
+            <Link href={href} className="mt-2 block text-base font-black tracking-[-0.04em] transition hover:text-tecnova-red sm:text-2xl">
               {item.nombre}
             </Link>
           </div>
@@ -78,7 +78,7 @@ export default function ProductCard({
           </span>
         </div>
 
-        <p className="mt-3 flex-1 text-sm font-semibold leading-6 text-tecnova-steel">{item.descripcionCorta}</p>
+        <p className="mt-3 flex-1 text-xs font-semibold leading-5 text-tecnova-steel sm:text-sm sm:leading-6">{item.descripcionCorta}</p>
 
         {view === "list" && item.caracteristicas.length > 0 && (
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -90,8 +90,8 @@ export default function ProductCard({
           </div>
         )}
 
-        <div className="mt-5 flex items-center justify-between gap-3">
-          <p className="text-lg font-black">{formatPrice(item.precio, item.mostrarPrecio, item.etiquetaPrecio)}</p>
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+          <p className="text-sm font-black sm:text-lg">{formatPrice(item.precio, item.mostrarPrecio, item.etiquetaPrecio)}</p>
           <div className="flex gap-2">
             <button
               type="button"

@@ -25,8 +25,10 @@ const imageFallback = "/hero-tecnova-industrial.png";
 
 export function safeImagePath(src?: string | null) {
   if (!src) return "";
-  if (src.startsWith("http://") || src.startsWith("https://") || src.startsWith("blob:")) return src;
+  if (src.startsWith("blob:")) return "";
+  if (src.startsWith("http://") || src.startsWith("https://")) return src;
   if (!src.startsWith("/")) return "";
+  if (src.startsWith("/uploads/")) return src;
   const cleanPath = src.split("?")[0];
   const fullPath = path.join(process.cwd(), "public", cleanPath);
   return existsSync(fullPath) ? src : "";

@@ -1,5 +1,6 @@
 import ProductActions from "@/components/ProductActions";
 import ProductCard from "@/components/ProductCard";
+import ProductGallery from "@/components/ProductGallery";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import { parseJsonArray, productImage, safeImagePath, toCatalogCard, type SpecItem } from "@/lib/catalog";
@@ -8,7 +9,6 @@ import { prisma } from "@/lib/prisma";
 import { getSettingsMap } from "@/lib/settings";
 import type { Prisma } from "@prisma/client";
 import type { Metadata } from "next";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 
 type Props = {
@@ -16,6 +16,9 @@ type Props = {
 };
 
 type ProductWithCategory = Prisma.ProductGetPayload<{ include: { category: true } }>;
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
@@ -75,20 +78,7 @@ function SparePartDetail({
   return (
     <section className="mx-auto max-w-[1540px] px-4 py-8 sm:px-5 lg:px-14">
       <div className="grid gap-7 lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="grid gap-4">
-          <div className="relative aspect-[4/3] overflow-hidden rounded-[30px] bg-neutral-100 shadow-soft">
-            <Image src={uniqueImages[0]} alt={product.nombre} fill priority sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover" />
-          </div>
-          {uniqueImages.length > 1 && (
-            <div className="grid grid-cols-4 gap-3">
-              {uniqueImages.slice(0, 4).map((image) => (
-                <div key={image} className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-neutral-100">
-                  <Image src={image} alt={product.nombre} fill sizes="160px" className="object-cover" />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <ProductGallery images={uniqueImages} alt={product.nombre} />
 
         <aside className="rounded-[30px] bg-white p-6 shadow-soft ring-1 ring-black/5 sm:p-8 lg:sticky lg:top-24 lg:self-start">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-tecnova-red">{product.category.nombre}</p>

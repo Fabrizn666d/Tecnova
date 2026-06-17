@@ -114,7 +114,7 @@ export default function CatalogBrowser({
             </div>
           </div>
 
-          <div className={view === "grid" ? "grid gap-5 sm:grid-cols-2 xl:grid-cols-3" : "grid gap-5"}>
+          <div className={view === "grid" ? "grid grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-3" : "grid gap-5"}>
             {filtered.map((item) => (
               <ProductCard key={item.id} item={item} view={view} />
             ))}

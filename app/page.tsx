@@ -1,3 +1,5 @@
+import FaqSection from "@/components/FaqSection";
+import GoogleMapSection from "@/components/GoogleMapSection";
 import ProductCard from "@/components/ProductCard";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
@@ -7,6 +9,9 @@ import { getSettingsMap } from "@/lib/settings";
 import { ArrowRight, Flame, Headphones, Layers, Settings, ShieldCheck, Wrench, Zap } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 const categoryIcons = {
   hornos: Flame,
@@ -18,7 +23,7 @@ const categoryIcons = {
 
 export default async function Home() {
   const settings = await getSettingsMap();
-  const [featuredProducts, featuredSpareParts, categories, brands, services, projects, testimonials] = await Promise.all([
+  const [featuredProducts, featuredSpareParts, categories, brands, services, projects, testimonials, faqs] = await Promise.all([
     getFeaturedProducts().catch(() => []),
     getFeaturedSpareParts().catch(() => []),
     prisma.category.findMany({
@@ -29,6 +34,7 @@ export default async function Home() {
     prisma.service.findMany({ where: { activo: true, slug: { in: ["reparacion", "mantenimiento", "automatizacion", "instalacion"] } }, orderBy: { orden: "asc" } }).catch(() => []),
     prisma.project.findMany({ where: { activo: true }, orderBy: [{ destacado: "desc" }, { orden: "asc" }], take: 3 }).catch(() => []),
     prisma.testimonial.findMany({ where: { activo: true }, orderBy: { orden: "asc" }, take: 3 }).catch(() => []),
+    prisma.fAQ.findMany({ where: { activo: true }, orderBy: { orden: "asc" }, take: 8 }).catch(() => []),
   ]);
   const heroBanner = await prisma.banner
     .findFirst({ where: { activo: true, posicion: "hero" }, orderBy: { orden: "asc" } })
@@ -63,10 +69,10 @@ export default async function Home() {
               {heroBanner?.descripcion || "Venta de equipos, repuestos, instalación, mantenimiento y reparación para panaderías, restaurantes e industria alimentaria."}
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <Link href={heroBanner?.ctaLink || "#productos"} className="inline-flex items-center gap-2 rounded-full bg-tecnova-red px-5 py-3 text-sm font-black text-white hover:bg-red-700">
+              <Link href={heroBanner?.ctaLink || "/productos"} className="inline-flex items-center gap-2 rounded-full bg-tecnova-red px-5 py-3 text-sm font-black text-white hover:bg-red-700">
                 {heroBanner?.ctaTexto || "Ver Productos"} <ArrowRight size={17} />
               </Link>
-              <Link href={heroBanner?.ctaLink2 || "#repuestos"} className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-black text-black hover:bg-neutral-100">
+              <Link href={heroBanner?.ctaLink2 || "/repuestos"} className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-black text-black hover:bg-neutral-100">
                 {heroBanner?.ctaTexto2 || "Ver Repuestos"} <ArrowRight size={17} />
               </Link>
               <Link href="/cotizacion" className="inline-flex items-center gap-2 rounded-full bg-amber-300 px-5 py-3 text-sm font-black text-black hover:bg-amber-200">
@@ -211,6 +217,8 @@ export default async function Home() {
         </section>
       )}
 
+      <FaqSection items={faqs} />
+      <GoogleMapSection settings={settings} />
       <SiteFooter settings={settings} />
     </main>
   );
@@ -238,7 +246,7 @@ function HomeCatalog({
           Ver todo
         </Link>
       </div>
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3">
         {items.map((item) => (
           <ProductCard key={item.id} item={item} />
         ))}
