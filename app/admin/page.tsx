@@ -1011,8 +1011,8 @@ function BackupsPanel({ isSuperAdmin }: { isSuperAdmin: boolean }) {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.14em] text-tecnova-red">Sistema</p>
-            <h3 className="mt-2 text-2xl font-black tracking-[-0.04em]">Backups</h3>
-            <p className="mt-1 text-sm font-bold text-neutral-500">Respalda SQLite, imagenes subidas y manifest del sistema.</p>
+            <h3 className="mt-2 text-2xl font-black tracking-[-0.04em]">Backups del sistema</h3>
+            <p className="mt-1 text-sm font-bold text-neutral-500">Los backups protegen la base de datos y las imágenes subidas.</p>
           </div>
           <button
             type="button"
@@ -1059,7 +1059,7 @@ function BackupsPanel({ isSuperAdmin }: { isSuperAdmin: boolean }) {
                   <td className="py-4"><span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-black">{backup.tipo === "automatico" ? "Automático" : "Manual"}</span></td>
                   <td className="py-4 text-right">
                     <a
-                      href={`/api/admin/backups/${encodeURIComponent(backup.nombre)}`}
+                      href={`/api/admin/backups/download?file=${encodeURIComponent(backup.nombre)}`}
                       className={`inline-flex h-9 items-center gap-2 rounded-lg px-3 text-xs font-black ${isSuperAdmin ? "bg-black text-white" : "pointer-events-none bg-neutral-100 text-neutral-400"}`}
                     >
                       <ExternalLink size={14} /> Descargar
@@ -1075,6 +1075,16 @@ function BackupsPanel({ isSuperAdmin }: { isSuperAdmin: boolean }) {
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div className="rounded-lg bg-neutral-950 p-5 text-white shadow-sm">
+        <p className="text-xs font-black uppercase tracking-[0.14em] text-red-300">Backups automáticos</p>
+        <h4 className="mt-2 text-xl font-black">Activar cron en el VPS</h4>
+        <p className="mt-2 text-sm font-semibold leading-6 text-white/70">
+          Si cron no está configurado, para activar backup automático diario a las 3:00 AM ejecuta en el VPS:
+        </p>
+        <pre className="mt-4 overflow-x-auto rounded-lg bg-black p-4 text-xs font-bold text-white"><code>{`crontab -e\n\n0 3 * * * cd /root/Tecnova && bash scripts/backup.sh`}</code></pre>
+        <p className="mt-3 text-sm font-black text-red-200">Este paso se realiza una sola vez en el VPS.</p>
       </div>
     </section>
   );

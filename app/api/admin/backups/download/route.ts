@@ -9,12 +9,12 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function GET(_request: NextRequest, context: { params: Promise<{ filename: string }> }) {
+export async function GET(request: NextRequest) {
   try {
     const admin = await requireAdmin();
     if (!isSuperAdmin(admin.rol)) return fail("No autorizado.", 403);
 
-    const { filename } = await context.params;
+    const filename = request.nextUrl.searchParams.get("file") || "";
     if (!isValidBackupFilename(filename)) return fail("Nombre de backup invalido.", 400);
 
     const filePath = backupPath(filename);

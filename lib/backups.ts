@@ -11,7 +11,7 @@ export type BackupItem = {
 };
 
 const rootDir = process.cwd();
-const backupNamePattern = /^(tecnova-backup-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}|tecnova-auto-\d{4}-\d{2}-\d{2}-\d{4})\.tar\.gz$/;
+const backupNamePattern = /^(tecnova-manual-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}|tecnova-backup-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}|tecnova-auto-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}|tecnova-auto-\d{4}-\d{2}-\d{2}-\d{4})\.tar\.gz$/;
 
 export function backupDir() {
   return path.resolve(process.env.BACKUP_DIR || path.join(rootDir, "backups"));
@@ -58,13 +58,20 @@ export async function openBackupStream(filename: string) {
 async function createBackup(type: "manual" | "auto") {
   await mkdir(backupDir(), { recursive: true });
   const stamp = formatStamp(new Date());
-  const filename = type === "manual" ? `tecnova-backup-${stamp}.tar.gz` : `tecnova-auto-${stamp}.tar.gz`;
+  const filename = type === "manual" ? `tecnova-manual-${stamp}.tar.gz` : `tecnova-auto-${stamp}.tar.gz`;
   const outputPath = path.join(backupDir(), filename);
   const tempDir = path.join(backupDir(), `.tmp-${stamp}-${process.pid}`);
   await mkdir(tempDir, { recursive: true });
 
   try {
-    const sourceEntries = await existingEntries(["prisma/tecnova.db", "public/uploads", "package.json"]);
+    try {
+      await stat(outputPath);
+      throw new Error("Ya existe un backup creado en este minuto. Intenta nuevamente en unos segundos.");
+    } catch (error) {
+      if (error instanceof Error && error.message.startsWith("Ya existe")) throw error;
+    }
+
+    const sourceEntries = await existingEntries(["prisma/tecnova.db", "public/uploads"]);
     if (!sourceEntries.includes("prisma/tecnova.db")) {
       throw new Error("No existe prisma/tecnova.db para respaldar.");
     }
@@ -76,10 +83,11 @@ async function createBackup(type: "manual" | "auto") {
 
     const manifest = {
       fecha: new Date().toISOString(),
-      tipo: type,
+      tipo: type === "auto" ? "automatic" : "manual",
+      nombre: filename,
+      tamano: await totalSize(sourceEntries),
       version: await packageVersion(),
       archivos: sourceEntries,
-      tamanoFuente: await totalSize(sourceEntries),
     };
     await writeFile(path.join(tempDir, "manifest.json"), JSON.stringify(manifest, null, 2), "utf8");
 

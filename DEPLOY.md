@@ -8,10 +8,9 @@ Cada backup automatico incluye:
 
 - `prisma/tecnova.db`
 - `public/uploads` si existe
-- `package.json` si existe
 - `manifest.json`
 
-El script mantiene solo los ultimos 30 backups automaticos y no elimina backups manuales.
+El script usa `/root/Tecnova` cuando existe. En local usa la carpeta actual del proyecto. Mantiene solo los ultimos 30 backups automaticos y no elimina backups manuales.
 
 ### Activar cron cada 6 horas
 

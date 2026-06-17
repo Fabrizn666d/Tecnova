@@ -1,15 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+if [ -d "/root/Tecnova" ]; then
+  ROOT_DIR="/root/Tecnova"
+else
+  ROOT_DIR="$SCRIPT_ROOT"
+fi
+cd "$ROOT_DIR"
+
 BACKUP_DIR="${BACKUP_DIR:-$ROOT_DIR/backups}"
 LOG_FILE="$BACKUP_DIR/backup.log"
-STAMP="$(date +%Y-%m-%d-%H%M)"
+STAMP="$(date +%Y-%m-%d-%H-%M)"
 BACKUP_NAME="tecnova-auto-$STAMP.tar.gz"
 BACKUP_PATH="$BACKUP_DIR/$BACKUP_NAME"
 TMP_DIR="$BACKUP_DIR/.tmp-auto-$STAMP-$$"
 
 mkdir -p "$BACKUP_DIR" "$TMP_DIR"
+
+if [ -e "$BACKUP_PATH" ]; then
+  printf '[%s] ERROR: ya existe %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$BACKUP_NAME" >> "$LOG_FILE"
+  exit 1
+fi
 
 log() {
   printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$1" >> "$LOG_FILE"
@@ -28,9 +40,6 @@ fi
 FILES=("prisma/tecnova.db")
 if [ -d "$ROOT_DIR/public/uploads" ]; then
   FILES+=("public/uploads")
-fi
-if [ -f "$ROOT_DIR/package.json" ]; then
-  FILES+=("package.json")
 fi
 
 SOURCE_SIZE=0
@@ -56,15 +65,24 @@ done
 cat > "$TMP_DIR/manifest.json" <<JSON
 {
   "fecha": "$(date -Iseconds)",
-  "tipo": "auto",
-  "version": "$VERSION",
+  "tipo": "automatic",
+  "nombre": "$BACKUP_NAME",
+  "tamano": $SOURCE_SIZE,
   "archivos": [$JSON_FILES],
-  "tamanoFuente": $SOURCE_SIZE
+  "version": "$VERSION"
 }
 JSON
 
 log "Iniciando backup automatico: $BACKUP_NAME"
-tar -czf "$BACKUP_PATH" -C "$TMP_DIR" manifest.json -C "$ROOT_DIR" "${FILES[@]}"
+mkdir -p "$TMP_DIR/prisma"
+cp "$ROOT_DIR/prisma/tecnova.db" "$TMP_DIR/prisma/tecnova.db"
+
+TAR_ARGS=(-czf "$BACKUP_PATH" -C "$TMP_DIR" manifest.json prisma/tecnova.db)
+if [ -d "$ROOT_DIR/public/uploads" ]; then
+  TAR_ARGS+=(-C "$ROOT_DIR" public/uploads)
+fi
+
+tar "${TAR_ARGS[@]}"
 log "Backup creado: $BACKUP_NAME ($(du -h "$BACKUP_PATH" | awk '{print $1}'))"
 
 find "$BACKUP_DIR" -maxdepth 1 -type f -name 'tecnova-auto-*.tar.gz' -printf '%T@ %p\n' \
