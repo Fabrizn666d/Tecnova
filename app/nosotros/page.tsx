@@ -23,6 +23,23 @@ export default async function NosotrosPage() {
     .split(/\n+/)
     .map((item) => item.trim())
     .filter(Boolean);
+  const stats = [
+    {
+      icon: Factory,
+      label: settings.nosotros_stat_1_label || "Equipos y repuestos",
+      value: settings.nosotros_stat_1_value || `${products}+`,
+    },
+    {
+      icon: ShieldCheck,
+      label: settings.nosotros_stat_2_label || "Trabajos publicados",
+      value: settings.nosotros_stat_2_value || `${projects}+`,
+    },
+    {
+      icon: Users,
+      label: settings.nosotros_stat_3_label || "Marcas trabajadas",
+      value: settings.nosotros_stat_3_value || `${brands}+`,
+    },
+  ];
 
   return (
     <main className="min-h-screen bg-white text-tecnova-dark">
@@ -42,9 +59,9 @@ export default async function NosotrosPage() {
             <p className="mt-4 text-base font-semibold leading-8 text-tecnova-steel">{settings.nosotros_subtitulo}</p>
             <p className="mt-4 text-sm font-semibold leading-7 text-tecnova-steel">{settings.nosotros_historia}</p>
             <div className="mt-7 grid gap-4 sm:grid-cols-3">
-              <Stat icon={Factory} label="Equipos y repuestos" value={`${products}+`} />
-              <Stat icon={ShieldCheck} label="Trabajos publicados" value={`${projects}+`} />
-              <Stat icon={Users} label="Marcas trabajadas" value={`${brands}+`} />
+              {stats.map((stat) => (
+                <Stat key={stat.label} icon={stat.icon} label={stat.label} value={stat.value} />
+              ))}
             </div>
           </div>
         </div>

@@ -110,6 +110,11 @@ export async function updateAdmin(request: NextRequest, resource: ResourceName, 
       if (id === admin.id && data.activo === false) {
         return fail("No puedes desactivar tu propio usuario.", 400);
       }
+      const current = await prisma.adminUser.findUnique({ where: { id }, select: { rol: true, activo: true } });
+      if (current?.activo && isSuperAdmin(current.rol) && (!data.activo || !isSuperAdmin(String(data.rol || "")))) {
+        const superAdmins = await prisma.adminUser.count({ where: { activo: true, OR: [{ rol: "SUPER_ADMIN" }, { rol: "superadmin" }] } });
+        if (superAdmins <= 1) return fail("No puedes quitar el último SUPER_ADMIN activo.", 400);
+      }
       const email = String(data.email || "");
       const existing = await prisma.adminUser.findFirst({ where: { email, id: { not: id } } });
       if (existing) return fail("Ya existe otro usuario con ese correo.", 409);
@@ -139,6 +144,11 @@ export async function deleteAdmin(_request: NextRequest, resource: ResourceName,
     const { id } = await context.params;
     if (resource === "usuarios") {
       if (id === admin.id) return fail("No puedes eliminar ni desactivar tu propio usuario.", 400);
+      const current = await prisma.adminUser.findUnique({ where: { id }, select: { rol: true, activo: true } });
+      if (current?.activo && isSuperAdmin(current.rol)) {
+        const superAdmins = await prisma.adminUser.count({ where: { activo: true, OR: [{ rol: "SUPER_ADMIN" }, { rol: "superadmin" }] } });
+        if (superAdmins <= 1) return fail("No puedes desactivar el último SUPER_ADMIN activo.", 400);
+      }
       const item = await prisma.adminUser.update({ where: { id }, data: { activo: false } });
       await logActivity(admin, "desactivar:usuarios", resource, JSON.stringify({ id }));
       return ok(withoutPassword(item));

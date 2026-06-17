@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
+import FloatingWhatsApp from "@/components/FloatingWhatsApp";
+import { getSettingsMap } from "@/lib/settings";
 import "./globals.css";
 
 const inter = Inter({
@@ -32,12 +34,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const settings = await getSettingsMap();
   return (
     <html lang="es">
-      <body className={`${inter.variable} ${spaceGrotesk.variable}`}>{children}</body>
+      <body className={`${inter.variable} ${spaceGrotesk.variable}`}>
+        {children}
+        <FloatingWhatsApp whatsapp={settings.whatsapp} message={settings.mensaje_whatsapp} />
+      </body>
     </html>
   );
 }

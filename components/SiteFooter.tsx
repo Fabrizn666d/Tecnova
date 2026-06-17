@@ -1,3 +1,4 @@
+import { repairText } from "@/lib/text";
 import { Mail, MapPin, MessageCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -8,8 +9,8 @@ export default function SiteFooter({
   settings: Record<string, string>;
 }) {
   const footerLogo = settings.logo_footer || "/logo.png";
-  const copyright = settings.copyright_texto || "© 2026 Tecnova Perú. Todos los derechos reservados.";
-  const designer = settings.designer_texto || "Designed and developed by Fabrizio Apaza";
+  const copyright = repairText(settings.copyright_texto || "© 2026 Tecnova Perú. Todos los derechos reservados.");
+  const designer = repairText(settings.designer_texto || "Designed and developed by Fabrizio Apaza");
   const legalLinks = [
     ["Libro de Reclamaciones", "/libro-de-reclamaciones"],
     ["Política de Privacidad", "/politica-privacidad"],
@@ -31,9 +32,9 @@ export default function SiteFooter({
               Maquinaria industrial, repuestos y servicio técnico para panificación, producción alimentaria y automatización.
             </p>
             <div className="mt-6 space-y-3 text-sm font-bold text-tecnova-dark">
-              <p className="flex items-center gap-3"><MessageCircle size={18} />{settings.whatsapp_display}</p>
-              <p className="flex items-center gap-3 break-all"><Mail size={18} />{settings.email}</p>
-              <p className="flex items-center gap-3"><MapPin size={18} />{settings.direccion}</p>
+              <p className="flex items-center gap-3"><MessageCircle size={18} />{repairText(settings.whatsapp_display)}</p>
+              <p className="flex items-center gap-3 break-all"><Mail size={18} />{repairText(settings.email)}</p>
+              <p className="flex items-center gap-3"><MapPin size={18} />{repairText(settings.direccion)}</p>
             </div>
           </div>
 
@@ -61,12 +62,12 @@ export default function SiteFooter({
           <div>
             <h3 className="text-sm font-black uppercase tracking-[0.16em]">Datos legales</h3>
             <div className="mt-5 space-y-3 text-sm font-semibold leading-6 text-tecnova-steel">
-              <p>Razón social: {settings.razon_social || settings.empresa_nombre}</p>
+              <p>Razón social: {repairText(settings.razon_social || settings.empresa_nombre)}</p>
               <p>RUC: {settings.ruc || "Por actualizar"}</p>
-              <p>Dirección: {settings.direccion}</p>
+              <p>Dirección: {repairText(settings.direccion)}</p>
             </div>
             <a
-              href={`https://wa.me/${settings.whatsapp}?text=${encodeURIComponent("Hola Tecnova, quiero solicitar información.")}`}
+              href={`https://wa.me/${settings.whatsapp || "51937492227"}?text=${encodeURIComponent("Hola Tecnova, quiero solicitar información.")}`}
               target="_blank"
               rel="noreferrer"
               className="mt-6 inline-flex rounded-full bg-black px-5 py-3 text-sm font-black text-white transition hover:bg-tecnova-red"

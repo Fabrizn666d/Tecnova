@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import type { BrandOption, CatalogCard, CatalogKind, CategoryOption } from "@/lib/catalog-types";
 import type { Prisma } from "@prisma/client";
+import { existsSync } from "fs";
+import path from "path";
 
 export type CatalogItem = Prisma.ProductGetPayload<{ include: { category: true } }>;
 
@@ -19,8 +21,20 @@ export function parseJsonArray<T = unknown>(value?: string | null): T[] {
   }
 }
 
+const imageFallback = "/hero-tecnova-industrial.png";
+
+export function safeImagePath(src?: string | null) {
+  if (!src) return "";
+  if (src.startsWith("http://") || src.startsWith("https://") || src.startsWith("blob:")) return src;
+  if (!src.startsWith("/")) return "";
+  const cleanPath = src.split("?")[0];
+  const fullPath = path.join(process.cwd(), "public", cleanPath);
+  return existsSync(fullPath) ? src : "";
+}
+
 export function productImage(product: Pick<CatalogItem, "imagenPrincipal" | "imagenes">) {
-  return product.imagenPrincipal || parseJsonArray<string>(product.imagenes)[0] || "/hero-tecnova-industrial.png";
+  const candidates = [product.imagenPrincipal, ...parseJsonArray<string>(product.imagenes)];
+  return candidates.map((item) => safeImagePath(item)).find(Boolean) || imageFallback;
 }
 
 export function productHref(product: Pick<CatalogItem, "tipo" | "slug">) {

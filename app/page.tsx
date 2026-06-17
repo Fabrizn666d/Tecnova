@@ -18,7 +18,7 @@ const categoryIcons = {
 
 export default async function Home() {
   const settings = await getSettingsMap();
-  const [featuredProducts, featuredSpareParts, categories, brands, services, projects] = await Promise.all([
+  const [featuredProducts, featuredSpareParts, categories, brands, services, projects, testimonials] = await Promise.all([
     getFeaturedProducts().catch(() => []),
     getFeaturedSpareParts().catch(() => []),
     prisma.category.findMany({
@@ -28,6 +28,7 @@ export default async function Home() {
     prisma.brand.findMany({ where: { activo: true }, orderBy: { orden: "asc" }, take: 12 }).catch(() => []),
     prisma.service.findMany({ where: { activo: true, slug: { in: ["reparacion", "mantenimiento", "automatizacion", "instalacion"] } }, orderBy: { orden: "asc" } }).catch(() => []),
     prisma.project.findMany({ where: { activo: true }, orderBy: [{ destacado: "desc" }, { orden: "asc" }], take: 3 }).catch(() => []),
+    prisma.testimonial.findMany({ where: { activo: true }, orderBy: { orden: "asc" }, take: 3 }).catch(() => []),
   ]);
   const heroBanner = await prisma.banner
     .findFirst({ where: { activo: true, posicion: "hero" }, orderBy: { orden: "asc" } })
@@ -41,8 +42,7 @@ export default async function Home() {
     })),
     { name: "Servicio Técnico", slug: "servicio-tecnico", href: "/servicios" },
   ].slice(0, 5);
-  const brandLogos = brands.filter((brand) => Boolean(brand.logo));
-  const marqueeBrands = [...brandLogos, ...brandLogos];
+  const marqueeBrands = [...brands, ...brands];
 
   return (
     <main className="min-h-screen bg-white text-tecnova-dark">
@@ -118,7 +118,7 @@ export default async function Home() {
       <HomeCatalog id="productos" title="Productos destacados" href="/productos" items={featuredProducts.map(toCatalogCard)} />
       <HomeCatalog id="repuestos" title="Repuestos destacados" href="/repuestos" items={featuredSpareParts.map(toCatalogCard)} />
 
-      {brandLogos.length > 0 && (
+      {brands.length > 0 && (
         <section className="mx-auto max-w-[1540px] px-4 py-8 sm:px-5 lg:px-14">
           <div className="mb-5">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-tecnova-red">Marcas</p>
@@ -192,6 +192,24 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      {testimonials.length > 0 && (
+        <section className="mx-auto max-w-[1540px] px-4 py-8 sm:px-5 lg:px-14">
+          <div className="mb-6">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-tecnova-red">Testimonios</p>
+            <h2 className="mt-2 text-3xl font-black tracking-[-0.05em] sm:text-5xl">Clientes que confían en Tecnova</h2>
+          </div>
+          <div className="grid gap-5 lg:grid-cols-3">
+            {testimonials.map((item) => (
+              <article key={item.id} className="rounded-[24px] bg-white p-6 shadow-soft ring-1 ring-black/5">
+                <p className="text-sm font-semibold leading-7 text-tecnova-steel">{item.mensaje}</p>
+                <p className="mt-5 font-black">{item.nombre}</p>
+                {(item.empresa || item.cargo) && <p className="mt-1 text-sm font-bold text-neutral-500">{[item.cargo, item.empresa].filter(Boolean).join(" · ")}</p>}
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       <SiteFooter settings={settings} />
     </main>

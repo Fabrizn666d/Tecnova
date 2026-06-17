@@ -2,7 +2,7 @@ import ProductActions from "@/components/ProductActions";
 import ProductCard from "@/components/ProductCard";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
-import { parseJsonArray, productImage, toCatalogCard, type SpecItem } from "@/lib/catalog";
+import { parseJsonArray, productImage, safeImagePath, toCatalogCard, type SpecItem } from "@/lib/catalog";
 import { formatPrice } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { getSettingsMap } from "@/lib/settings";
@@ -65,7 +65,7 @@ function SparePartDetail({
   related: ProductWithCategory[];
   whatsapp: string;
 }) {
-  const images = [productImage(product), ...parseJsonArray<string>(product.imagenes)].filter(Boolean);
+  const images = [productImage(product), ...parseJsonArray<string>(product.imagenes).map((image) => safeImagePath(image))].filter(Boolean);
   const uniqueImages = Array.from(new Set(images));
   const specs = parseJsonArray<SpecItem>(product.especificaciones);
   const features = parseJsonArray<string>(product.caracteristicas);

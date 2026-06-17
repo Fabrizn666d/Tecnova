@@ -3,6 +3,7 @@ import SiteHeader from "@/components/SiteHeader";
 import { parseJsonArray, productImage } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
 import { getSettingsMap } from "@/lib/settings";
+import { repairText as repairUtf8Text } from "@/lib/text";
 import { CheckCircle2, MessageCircle } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -82,14 +83,14 @@ export default async function ServicioPage({ params }: Props) {
       {faqs.length > 0 && (
         <section className="mx-auto max-w-[1000px] px-4 py-8 sm:px-5 lg:px-14">
           <h2 className="text-3xl font-black tracking-[-0.05em]">Preguntas frecuentes</h2>
-          <div className="mt-5 grid gap-4">
+          <div className="mt-6 grid gap-4">
             {faqs.map((faq) => (
-              <details key={faq.id} className="group rounded-lg bg-neutral-100 p-5 shadow-sm ring-1 ring-black/5">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-base font-black">
-                  <span>{repairText(faq.pregunta)}</span>
+              <details key={faq.id} className="group rounded-lg bg-white p-5 shadow-soft ring-1 ring-black/5 sm:p-6">
+                <summary className="flex cursor-pointer list-none items-start justify-between gap-4 text-base font-black leading-6">
+                  <span className="pt-0.5">{repairUtf8Text(faq.pregunta)}</span>
                   <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white text-tecnova-red transition group-open:rotate-45">+</span>
                 </summary>
-                <p className="mt-4 border-t border-neutral-200 pt-4 text-sm font-semibold leading-7 text-tecnova-steel">{repairText(faq.respuesta)}</p>
+                <p className="mt-5 border-t border-neutral-200 pt-5 text-sm font-semibold leading-7 text-tecnova-steel">{repairUtf8Text(faq.respuesta)}</p>
               </details>
             ))}
           </div>
@@ -101,6 +102,7 @@ export default async function ServicioPage({ params }: Props) {
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function repairText(value: string) {
   const bad = "\uFFFD";
   return value

@@ -12,7 +12,6 @@ export const metadata: Metadata = {
 
 export default async function LibroPage() {
   const settings = await getSettingsMap();
-  const mapSrc = settings.google_maps_embed || `https://www.google.com/maps?q=${encodeURIComponent(settings.direccion)}&output=embed`;
   return (
     <main className="min-h-screen bg-white text-tecnova-dark">
       <SiteHeader whatsapp={settings.whatsapp} whatsappDisplay={settings.whatsapp_display} logo={settings.logo_principal} />
@@ -36,17 +35,6 @@ export default async function LibroPage() {
         <ComplaintForm />
       </section>
 
-      <section className="mx-auto max-w-[1300px] px-4 pb-12 sm:px-5 lg:px-14">
-        <div className="overflow-hidden rounded-lg bg-neutral-100 shadow-soft ring-1 ring-black/5">
-          <iframe
-            src={mapSrc}
-            title="Ubicación Tecnova Perú"
-            className="h-[420px] w-full border-0"
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-          />
-        </div>
-      </section>
       <SiteFooter settings={settings} />
     </main>
   );

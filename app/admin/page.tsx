@@ -257,6 +257,12 @@ const configGroups: { title: string; fields: FieldConfig[] }[] = [
       { key: "nosotros_vision", label: "Visión", tooltip: "Declaración de visión.", type: "textarea" },
       { key: "nosotros_valores", label: "Valores", tooltip: "Un valor por línea.", type: "textarea" },
       { key: "nosotros_imagen", label: "Imagen principal", tooltip: "Imagen destacada de la página Nosotros.", type: "upload" },
+      { key: "nosotros_stat_1_label", label: "Estadística 1 etiqueta", tooltip: "Texto de la primera estadística." },
+      { key: "nosotros_stat_1_value", label: "Estadística 1 valor", tooltip: "Valor visible. Déjalo vacío para usar el conteo automático." },
+      { key: "nosotros_stat_2_label", label: "Estadística 2 etiqueta", tooltip: "Texto de la segunda estadística." },
+      { key: "nosotros_stat_2_value", label: "Estadística 2 valor", tooltip: "Valor visible. Déjalo vacío para usar el conteo automático." },
+      { key: "nosotros_stat_3_label", label: "Estadística 3 etiqueta", tooltip: "Texto de la tercera estadística." },
+      { key: "nosotros_stat_3_value", label: "Estadística 3 valor", tooltip: "Valor visible. Déjalo vacío para usar el conteo automático." },
     ],
   },
   {
@@ -294,6 +300,16 @@ export default function AdminPage() {
   );
   const activeResource = active === "dashboard" ? null : active;
   const fields = useMemo(() => (activeResource ? Object.keys(templates[activeResource]) : []), [activeResource]);
+
+  const loadCategories = useCallback(async () => {
+    try {
+      const response = await fetch("/api/admin/categorias");
+      const payload = await safeJson(response);
+      if (response.ok && payload.ok) setCategories(payload.data?.items || []);
+    } catch {
+      setCategories([]);
+    }
+  }, []);
 
   const refreshSummary = useCallback(async () => {
     try {
@@ -361,12 +377,7 @@ export default function AdminPage() {
         const mePayload = await safeJson(me);
         if (!ignore && me.ok) setAdmin(mePayload.data);
 
-        const [categoryResponse] = await Promise.all([
-          fetch("/api/admin/categorias"),
-          refreshSummary(),
-        ]);
-        const categoryPayload = await safeJson(categoryResponse);
-        if (!ignore && categoryResponse.ok) setCategories(categoryPayload.data?.items || []);
+        await Promise.all([loadCategories(), refreshSummary()]);
       } catch {
         if (!ignore) setMessage("No se pudo cargar la sesión del panel.");
       }
@@ -376,7 +387,7 @@ export default function AdminPage() {
     return () => {
       ignore = true;
     };
-  }, [refreshSummary, router]);
+  }, [loadCategories, refreshSummary, router]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -412,7 +423,11 @@ export default function AdminPage() {
         return;
       }
       setMessage("Guardado correctamente.");
-      await Promise.all([load(), refreshSummary()]);
+      await Promise.all([
+        load(),
+        refreshSummary(),
+        activeResource === "categorias" ? loadCategories() : Promise.resolve(),
+      ]);
     } catch {
       setMessage("No se pudo guardar. Revisa los campos e intenta nuevamente.");
     } finally {
@@ -433,7 +448,11 @@ export default function AdminPage() {
         setMessage(payload.message || `No se pudo ${action} el registro.`);
         return;
       }
-      await Promise.all([load(), refreshSummary()]);
+      await Promise.all([
+        load(),
+        refreshSummary(),
+        activeResource === "categorias" ? loadCategories() : Promise.resolve(),
+      ]);
       setMessage(activeResource === "usuarios" ? "Usuario desactivado." : "Registro eliminado.");
     } catch {
       setMessage("No se pudo completar la acción.");
@@ -656,6 +675,11 @@ export default function AdminPage() {
               </h3>
 
               <div className="mt-5">
+                {activeResource === "categorias" && (
+                  <p className="mb-4 rounded-lg bg-amber-50 p-3 text-sm font-bold text-amber-800">
+                    Esta categoría aparecerá en la web cuando tenga productos asociados.
+                  </p>
+                )}
                 {activeResource === "productos" || activeResource === "repuestos" ? (
                   <ProductForm
                     kind={activeResource}

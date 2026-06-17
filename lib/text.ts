@@ -14,6 +14,7 @@ const replacements: [string, string][] = [
   ["Ãš", "Ú"],
   ["Ã‘", "Ñ"],
   ["ï¿½", "¿"],
+  ["Tecnova Per?", "Tecnova Perú"],
   ["�Realizan instalaci�n?", "¿Realizan instalación?"],
   ["¿Venden", "¿Venden"],
   ["¿Atienden", "¿Atienden"],
