@@ -15,7 +15,9 @@ export async function POST(request: NextRequest) {
     const folder = String(form.get("folder") || "general");
     if (!(file instanceof File)) return fail("Archivo no recibido.");
     const url = await saveUpload(file, folder);
-    return ok({ url });
+    const response = ok({ url });
+    response.headers.set("Cache-Control", "no-store");
+    return response;
   } catch (error) {
     return fail(error instanceof Error ? error.message : "No se pudo subir el archivo.");
   }

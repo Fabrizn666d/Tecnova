@@ -7,6 +7,7 @@ import { parseJsonArray, productImage, safeImagePath, toCatalogCard, type SpecIt
 import { formatPrice } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { getSettingsMap } from "@/lib/settings";
+import { ExternalLink } from "lucide-react";
 import type { Prisma } from "@prisma/client";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -93,6 +94,11 @@ function SparePartDetail({
           <div className="mt-6">
             <ProductActions item={card} whatsapp={whatsapp} />
           </div>
+          {product.mostrarVideo && product.videoUrl && (
+            <a href={product.videoUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-neutral-200 px-4 py-3 text-sm font-black transition hover:border-tecnova-red hover:text-tecnova-red">
+              Ver video <ExternalLink size={16} />
+            </a>
+          )}
         </aside>
       </div>
 

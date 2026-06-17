@@ -42,6 +42,8 @@ model Product {
   etiquetaPrecio    String?
   imagenes          String      @default("[]")
   imagenPrincipal   String?
+  videoUrl          String?
+  mostrarVideo      Boolean     @default(false)
   especificaciones  String      @default("[]")
   caracteristicas   String      @default("[]")
   aplicaciones      String      @default("[]")

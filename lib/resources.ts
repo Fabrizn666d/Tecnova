@@ -1,4 +1,4 @@
-import { cleanOptionalText, cleanSlug, cleanText, safeJson } from "@/lib/sanitize";
+import { cleanOptionalText, cleanPublicAssetJsonArray, cleanPublicAssetPath, cleanSlug, cleanText, safeJson } from "@/lib/sanitize";
 
 type RecordData = Record<string, unknown>;
 
@@ -75,7 +75,7 @@ export function buildResourceData(resource: ResourceName, input: RecordData) {
         slug: cleanSlug(cleanText(input.slug || input.nombre, 120)),
         descripcion: cleanOptionalText(input.descripcion, 500),
         icono: cleanOptionalText(input.icono, 60),
-        imagen: cleanOptionalText(input.imagen, 250),
+        imagen: cleanPublicAssetPath(input.imagen),
         color: cleanOptionalText(input.color, 20),
         orden: toInt(input.orden),
         activo: toBool(input.activo, true),
@@ -99,8 +99,10 @@ export function buildResourceData(resource: ResourceName, input: RecordData) {
         precioAnterior: toFloat(input.precioAnterior),
         mostrarPrecio: toBool(input.mostrarPrecio),
         etiquetaPrecio: cleanOptionalText(input.etiquetaPrecio, 80),
-        imagenes: safeJson(input.imagenes),
-        imagenPrincipal: cleanOptionalText(input.imagenPrincipal, 250),
+        imagenes: cleanPublicAssetJsonArray(input.imagenes),
+        imagenPrincipal: cleanPublicAssetPath(input.imagenPrincipal),
+        videoUrl: cleanOptionalText(input.videoUrl, 500),
+        mostrarVideo: toBool(input.mostrarVideo),
         especificaciones: safeJson(input.especificaciones),
         caracteristicas: safeJson(input.caracteristicas),
         aplicaciones: safeJson(input.aplicaciones),
@@ -126,7 +128,7 @@ export function buildResourceData(resource: ResourceName, input: RecordData) {
         descripcion: cleanText(input.descripcion, 500),
         descripcionLarga: cleanOptionalText(input.descripcionLarga, 5000),
         icono: cleanOptionalText(input.icono, 60),
-        imagen: cleanOptionalText(input.imagen, 250),
+        imagen: cleanPublicAssetPath(input.imagen),
         caracteristicas: safeJson(input.caracteristicas),
         orden: toInt(input.orden),
         activo: toBool(input.activo, true),
@@ -139,7 +141,7 @@ export function buildResourceData(resource: ResourceName, input: RecordData) {
         cliente: cleanOptionalText(input.cliente, 160),
         ubicacion: cleanOptionalText(input.ubicacion, 160),
         fecha: input.fecha ? new Date(String(input.fecha)) : null,
-        imagenes: safeJson(input.imagenes),
+        imagenes: cleanPublicAssetJsonArray(input.imagenes),
         categoria: cleanOptionalText(input.categoria, 80),
         destacado: toBool(input.destacado),
         activo: toBool(input.activo, true),
@@ -155,8 +157,8 @@ export function buildResourceData(resource: ResourceName, input: RecordData) {
         ctaTipo: cleanText(input.ctaTipo || "link", 30),
         ctaTexto2: cleanOptionalText(input.ctaTexto2, 80),
         ctaLink2: cleanOptionalText(input.ctaLink2, 250),
-        imagenDesktop: cleanOptionalText(input.imagenDesktop, 250),
-        imagenMobile: cleanOptionalText(input.imagenMobile, 250),
+        imagenDesktop: cleanPublicAssetPath(input.imagenDesktop),
+        imagenMobile: cleanPublicAssetPath(input.imagenMobile),
         colorTexto: cleanText(input.colorTexto || "light", 20),
         overlay: toBool(input.overlay, true),
         overlayOpacity: toFloat(input.overlayOpacity) ?? 0.5,
@@ -169,7 +171,7 @@ export function buildResourceData(resource: ResourceName, input: RecordData) {
     case "marcas":
       return {
         nombre: cleanText(input.nombre, 120),
-        logo: cleanOptionalText(input.logo, 250),
+        logo: cleanPublicAssetPath(input.logo),
         url: cleanOptionalText(input.url, 250),
         orden: toInt(input.orden),
         activo: toBool(input.activo, true),
@@ -191,7 +193,7 @@ export function buildResourceData(resource: ResourceName, input: RecordData) {
         cargo: cleanOptionalText(input.cargo, 120),
         mensaje: cleanText(input.mensaje, 500),
         rating: Math.min(Math.max(toInt(input.rating, 5), 1), 5),
-        imagen: cleanOptionalText(input.imagen, 250),
+        imagen: cleanPublicAssetPath(input.imagen),
         activo: toBool(input.activo, true),
         orden: toInt(input.orden),
       };

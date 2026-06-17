@@ -40,6 +40,8 @@ const statements = [
     etiquetaPrecio TEXT,
     imagenes TEXT NOT NULL DEFAULT '[]',
     imagenPrincipal TEXT,
+    videoUrl TEXT,
+    mostrarVideo BOOLEAN NOT NULL DEFAULT false,
     especificaciones TEXT NOT NULL DEFAULT '[]',
     caracteristicas TEXT NOT NULL DEFAULT '[]',
     aplicaciones TEXT NOT NULL DEFAULT '[]',
@@ -248,6 +250,8 @@ const productAlterStatements = [
   ["aplicaciones", "ALTER TABLE Product ADD COLUMN aplicaciones TEXT NOT NULL DEFAULT '[]'"],
   ["destacadoRepuesto", "ALTER TABLE Product ADD COLUMN destacadoRepuesto BOOLEAN NOT NULL DEFAULT false"],
   ["ordenRepuesto", "ALTER TABLE Product ADD COLUMN ordenRepuesto INTEGER"],
+  ["videoUrl", "ALTER TABLE Product ADD COLUMN videoUrl TEXT"],
+  ["mostrarVideo", "ALTER TABLE Product ADD COLUMN mostrarVideo BOOLEAN NOT NULL DEFAULT false"],
 ];
 
 for (const [column, statement] of productAlterStatements) {
