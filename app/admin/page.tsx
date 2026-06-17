@@ -26,7 +26,7 @@ import {
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type ResourceKey =
   | "productos"
@@ -306,6 +306,7 @@ export default function AdminPage() {
   const [total, setTotal] = useState(0);
   const [summary, setSummary] = useState<Record<string, unknown>>({});
   const [selected, setSelected] = useState<Record<string, unknown>>({});
+  const selectedRef = useRef<Record<string, unknown>>({});
   const [query, setQuery] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -323,6 +324,14 @@ export default function AdminPage() {
   );
   const activeResource = active === "dashboard" ? null : active;
   const fields = useMemo(() => (activeResource ? Object.keys(templates[activeResource]) : []), [activeResource]);
+
+  const updateSelected = useCallback((next: Record<string, unknown> | ((current: Record<string, unknown>) => Record<string, unknown>)) => {
+    setSelected((current) => {
+      const resolved = typeof next === "function" ? next(current) : next;
+      selectedRef.current = resolved;
+      return resolved;
+    });
+  }, []);
 
   const loadCategories = useCallback(async () => {
     try {
@@ -352,7 +361,7 @@ export default function AdminPage() {
     if (active === "dashboard") {
       setItems([]);
       setTotal(0);
-      setSelected({});
+      updateSelected({});
       await refreshSummary();
       return;
     }
@@ -376,7 +385,7 @@ export default function AdminPage() {
       const data = payload.data as ApiList;
       setItems(data?.items || []);
       setTotal(data?.total || 0);
-      setSelected(active === "configuracion" ? settingsRowsToForm(data?.items || []) : newTemplate(active));
+      updateSelected(active === "configuracion" ? settingsRowsToForm(data?.items || []) : newTemplate(active));
       setAdvancedOpen(false);
     } catch {
       setMessage("No se pudo conectar con el servidor. Intenta nuevamente.");
@@ -385,7 +394,7 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
-  }, [active, query, refreshSummary, router]);
+  }, [active, query, refreshSummary, router, updateSelected]);
 
   useEffect(() => {
     let ignore = false;
@@ -426,8 +435,17 @@ export default function AdminPage() {
     setMessage("");
     setSaving(true);
     try {
-      const id = selected.id;
-      const payload = preparePayload(activeResource, selected);
+      const currentSelected = selectedRef.current;
+      const id = currentSelected.id;
+      const payload = preparePayload(activeResource, currentSelected);
+      if (activeResource === "productos" || activeResource === "repuestos") {
+        console.info("[admin:image:save-payload]", {
+          resource: activeResource,
+          nombre: payload.nombre,
+          imagenPrincipal: payload.imagenPrincipal,
+          imagenes: payload.imagenes,
+        });
+      }
       const response = await fetch(
         activeResource === "configuracion"
           ? "/api/admin/configuracion"
@@ -522,7 +540,17 @@ export default function AdminPage() {
         urls.push(String(payload.data.url || ""));
       }
 
-      setSelected((current) => updateImageField(current, field, urls));
+      updateSelected((current) => {
+        const next = updateImageField(current, field, urls);
+        const imageState = next as Record<string, unknown>;
+        console.info("[admin:image:upload-state]", {
+          field,
+          urls,
+          imagenPrincipal: imageState.imagenPrincipal,
+          imagenes: imageState.imagenes,
+        });
+        return next;
+      });
       setUploadPreviews((current) => ({ ...current, [field]: urls[0] || "" }));
       setMessage(files.length > 1 ? "Imagenes subidas. Recuerda guardar los cambios." : "Imagen subida. Recuerda guardar los cambios.");
     } catch {
@@ -536,14 +564,14 @@ export default function AdminPage() {
     if (!activeResource) return;
     setMessage("");
     setAdvancedOpen(false);
-    setSelected(normalizeSelected(activeResource, item));
+    updateSelected(normalizeSelected(activeResource, item));
   }
 
   function startNew() {
     if (!activeResource || activeResource === "configuracion") return;
     setMessage("");
     setAdvancedOpen(false);
-    setSelected(newTemplate(activeResource));
+    updateSelected(newTemplate(activeResource));
   }
 
   const title = modules.find((mod) => mod.key === active)?.label || "Dashboard";
@@ -769,7 +797,7 @@ export default function AdminPage() {
                     uploadPreviews={uploadPreviews}
                     uploadingField={uploadingField}
                     onToggleAdvanced={() => setAdvancedOpen((value) => !value)}
-                    onChange={(field, value) => setSelected((current) => changeProductField(current, field, value))}
+                    onChange={(field, value) => updateSelected((current) => changeProductField(current, field, value))}
                     onUpload={upload}
                   />
                 ) : activeResource === "configuracion" ? (
@@ -777,20 +805,20 @@ export default function AdminPage() {
                     selected={selected}
                     uploadPreviews={uploadPreviews}
                     uploadingField={uploadingField}
-                    onChange={(field, value) => setSelected((current) => ({ ...current, [field]: value }))}
+                    onChange={(field, value) => updateSelected((current) => ({ ...current, [field]: value }))}
                     onUpload={upload}
                   />
                 ) : activeResource === "usuarios" ? (
-                  <UserForm selected={selected} onChange={(field, value) => setSelected((current) => ({ ...current, [field]: value }))} />
+                  <UserForm selected={selected} onChange={(field, value) => updateSelected((current) => ({ ...current, [field]: value }))} />
                 ) : activeResource && isRequestResource(activeResource) ? (
-                  <RequestForm resource={activeResource} selected={selected} onChange={(field, value) => setSelected((current) => ({ ...current, [field]: value }))} />
+                  <RequestForm resource={activeResource} selected={selected} onChange={(field, value) => updateSelected((current) => ({ ...current, [field]: value }))} />
                 ) : (
                   <GenericForm
                     fields={fields}
                     selected={selected}
                     uploadPreviews={uploadPreviews}
                     uploadingField={uploadingField}
-                    onChange={(field, value) => setSelected((current) => ({ ...current, [field]: value }))}
+                    onChange={(field, value) => updateSelected((current) => ({ ...current, [field]: value }))}
                     onUpload={upload}
                   />
                 )}

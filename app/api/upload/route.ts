@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
     const folder = String(form.get("folder") || "general");
     if (!(file instanceof File)) return fail("Archivo no recibido.");
     const url = await saveUpload(file, folder);
+    console.info("[admin:image:upload-response]", { folder, url });
     const response = ok({ url });
     response.headers.set("Cache-Control", "no-store");
     return response;
