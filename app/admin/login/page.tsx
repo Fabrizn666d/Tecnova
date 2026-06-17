@@ -7,7 +7,7 @@ import { FormEvent, useState } from "react";
 export default function AdminLoginPage() {
   const router = useRouter();
   const pathname = usePathname();
-  const [email, setEmail] = useState("admin@tecnovaperu.com");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -32,7 +32,7 @@ export default function AdminLoginPage() {
 
   return (
     <main className="grid min-h-screen place-items-center bg-neutral-100 px-4 py-10 text-neutral-950">
-      <form onSubmit={submit} className="w-full max-w-md rounded-[28px] bg-white p-7 shadow-soft ring-1 ring-black/5">
+      <form onSubmit={submit} autoComplete="off" className="w-full max-w-md rounded-[28px] bg-white p-7 shadow-soft ring-1 ring-black/5">
         <div className="relative mb-8 h-14 w-48">
           <Image src="/logo.png" alt="Tecnova Perú" fill sizes="192px" className="object-contain object-left" />
         </div>
@@ -48,6 +48,7 @@ export default function AdminLoginPage() {
               onChange={(event) => setEmail(event.target.value)}
               className="mt-2 h-12 w-full rounded-2xl border border-neutral-200 px-4 outline-none transition focus:border-tecnova-red"
               type="email"
+              autoComplete="off"
               required
             />
           </label>
@@ -58,6 +59,7 @@ export default function AdminLoginPage() {
               onChange={(event) => setPassword(event.target.value)}
               className="mt-2 h-12 w-full rounded-2xl border border-neutral-200 px-4 outline-none transition focus:border-tecnova-red"
               type="password"
+              autoComplete="new-password"
               required
             />
           </label>

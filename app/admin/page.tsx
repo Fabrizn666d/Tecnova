@@ -44,7 +44,7 @@ type ResourceKey =
   | "leads"
   | "reclamaciones";
 
-type PanelKey = "dashboard" | ResourceKey;
+type PanelKey = "dashboard" | "backups" | ResourceKey;
 
 type ApiList = {
   items: Record<string, unknown>[];
@@ -56,6 +56,13 @@ type AdminProfile = {
   nombre: string;
   email: string;
   rol: "SUPER_ADMIN" | "ADMIN" | "EDITOR";
+};
+
+type BackupItem = {
+  nombre: string;
+  fecha: string;
+  tamano: number;
+  tipo: "automatico" | "manual";
 };
 
 type FieldConfig = {
@@ -81,6 +88,7 @@ const modules: { key: PanelKey; label: string; icon: React.ComponentType<{ size?
   { key: "leads", label: "Leads", icon: ClipboardList },
   { key: "reclamaciones", label: "Reclamaciones", icon: FileWarning },
   { key: "usuarios", label: "Usuarios", icon: Users },
+  { key: "backups", label: "Backups", icon: FileWarning },
   { key: "configuracion", label: "Configuración", icon: Settings },
 ];
 
@@ -88,7 +96,7 @@ const moduleSections: { title: string; keys: PanelKey[] }[] = [
   { title: "Inicio", keys: ["dashboard"] },
   { title: "Contenido", keys: ["productos", "repuestos", "categorias", "marcas", "servicios", "proyectos", "banners", "faqs"] },
   { title: "Gestión", keys: ["cotizaciones", "leads", "reclamaciones"] },
-  { title: "Sistema", keys: ["usuarios", "configuracion"] },
+  { title: "Sistema", keys: ["usuarios", "backups", "configuracion"] },
 ];
 
 const requestResources = ["cotizaciones", "leads", "reclamaciones"] as const;
@@ -336,10 +344,10 @@ export default function AdminPage() {
 
   const isSuperAdmin = admin?.rol === "SUPER_ADMIN";
   const visibleModules = useMemo(
-    () => modules.filter((mod) => mod.key !== "usuarios" || isSuperAdmin),
+    () => modules.filter((mod) => !["usuarios", "backups"].includes(mod.key) || isSuperAdmin),
     [isSuperAdmin]
   );
-  const activeResource = active === "dashboard" ? null : active;
+  const activeResource = active === "dashboard" || active === "backups" ? null : active;
   const fields = useMemo(() => (activeResource ? Object.keys(templates[activeResource]) : []), [activeResource]);
 
   const updateSelected = useCallback((next: Record<string, unknown> | ((current: Record<string, unknown>) => Record<string, unknown>)) => {
@@ -380,6 +388,12 @@ export default function AdminPage() {
       setTotal(0);
       updateSelected({});
       await refreshSummary();
+      return;
+    }
+    if (active === "backups") {
+      setItems([]);
+      setTotal(0);
+      updateSelected({});
       return;
     }
 
@@ -750,6 +764,8 @@ export default function AdminPage() {
 
         {active === "dashboard" ? (
           <Dashboard summary={summary} loading={loading} />
+        ) : active === "backups" ? (
+          <BackupsPanel isSuperAdmin={isSuperAdmin} />
         ) : (
           <div className={`grid gap-5 p-4 lg:p-8 ${active === "configuracion" ? "xl:grid-cols-[1fr]" : "xl:grid-cols-[1fr_460px]"}`}>
             <section className="space-y-5">
@@ -925,6 +941,139 @@ function Dashboard({ summary, loading }: { summary: Record<string, unknown>; loa
               <p className="font-bold text-neutral-500">{String(item.cotizaciones || 0)} cotizaciones</p>
             </div>
           ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function BackupsPanel({ isSuperAdmin }: { isSuperAdmin: boolean }) {
+  const [backups, setBackups] = useState<BackupItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const loadBackups = useCallback(async () => {
+    setLoading(true);
+    setMessage("");
+    try {
+      const response = await fetch("/api/admin/backups", { cache: "no-store" });
+      const payload = await safeJson(response);
+      if (response.status === 401) {
+        setMessage("Tu sesión expiró. Inicia sesión nuevamente.");
+        setBackups([]);
+        return;
+      }
+      if (!response.ok || !payload.ok) {
+        setMessage(payload.message || "No se pudieron cargar los backups.");
+        setBackups([]);
+        return;
+      }
+      setBackups((payload.data?.items || []) as BackupItem[]);
+    } catch {
+      setMessage("No se pudo conectar con el servidor.");
+      setBackups([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadBackups();
+  }, [loadBackups]);
+
+  async function createBackup() {
+    setCreating(true);
+    setMessage("");
+    try {
+      const response = await fetch("/api/admin/backups", { method: "POST" });
+      const payload = await safeJson(response);
+      if (response.status === 401) {
+        setMessage("Tu sesión expiró. Inicia sesión nuevamente.");
+        return;
+      }
+      if (!response.ok || !payload.ok) {
+        setMessage(payload.message || "No se pudo crear el backup.");
+        return;
+      }
+      setMessage("Backup creado correctamente");
+      await loadBackups();
+    } catch {
+      setMessage("No se pudo crear el backup.");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  return (
+    <section className="space-y-5 p-4 lg:p-8">
+      <div className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-black/5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-tecnova-red">Sistema</p>
+            <h3 className="mt-2 text-2xl font-black tracking-[-0.04em]">Backups</h3>
+            <p className="mt-1 text-sm font-bold text-neutral-500">Respalda SQLite, imagenes subidas y manifest del sistema.</p>
+          </div>
+          <button
+            type="button"
+            onClick={createBackup}
+            disabled={!isSuperAdmin || creating}
+            className="inline-flex h-11 items-center gap-2 rounded-lg bg-tecnova-red px-4 text-sm font-black text-white transition hover:bg-red-700 disabled:opacity-50"
+          >
+            {creating ? <Loader2 size={17} className="animate-spin" /> : <Save size={17} />} Crear backup ahora
+          </button>
+        </div>
+        {!isSuperAdmin && (
+          <p className="mt-4 rounded-lg bg-amber-50 p-3 text-sm font-bold text-amber-800">
+            Solo usuarios SUPER_ADMIN pueden crear o descargar backups.
+          </p>
+        )}
+        {message && <p className="mt-4 rounded-lg bg-neutral-100 p-3 text-sm font-bold">{message}</p>}
+      </div>
+
+      <div className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-black/5">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[680px] text-left text-sm">
+            <thead className="text-xs uppercase tracking-[0.12em] text-neutral-500">
+              <tr>
+                <th className="py-3">Archivo</th>
+                <th className="py-3">Fecha</th>
+                <th className="py-3">Tamano</th>
+                <th className="py-3">Tipo</th>
+                <th className="py-3 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral-100">
+              {loading && (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-sm font-bold text-neutral-500">
+                    <span className="inline-flex items-center gap-2"><Loader2 className="animate-spin" size={16} /> Cargando backups...</span>
+                  </td>
+                </tr>
+              )}
+              {!loading && backups.map((backup) => (
+                <tr key={backup.nombre}>
+                  <td className="py-4 font-bold">{backup.nombre}</td>
+                  <td className="py-4 text-neutral-500">{formatDateTime(backup.fecha)}</td>
+                  <td className="py-4 text-neutral-500">{formatBytes(backup.tamano)}</td>
+                  <td className="py-4"><span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-black">{backup.tipo === "automatico" ? "Automático" : "Manual"}</span></td>
+                  <td className="py-4 text-right">
+                    <a
+                      href={`/api/admin/backups/${encodeURIComponent(backup.nombre)}`}
+                      className={`inline-flex h-9 items-center gap-2 rounded-lg px-3 text-xs font-black ${isSuperAdmin ? "bg-black text-white" : "pointer-events-none bg-neutral-100 text-neutral-400"}`}
+                    >
+                      <ExternalLink size={14} /> Descargar
+                    </a>
+                  </td>
+                </tr>
+              ))}
+              {!loading && backups.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-sm font-bold text-neutral-500">No hay backups para mostrar.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </section>
@@ -1794,6 +1943,18 @@ function recordTitle(item: Record<string, unknown>) {
 function formatDate(value: unknown) {
   if (!value) return "-";
   return new Date(String(value)).toLocaleDateString("es-PE");
+}
+
+function formatDateTime(value: unknown) {
+  if (!value) return "-";
+  return new Date(String(value)).toLocaleString("es-PE");
+}
+
+function formatBytes(value: number) {
+  if (!Number.isFinite(value) || value <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  const index = Math.min(Math.floor(Math.log(value) / Math.log(1024)), units.length - 1);
+  return `${(value / Math.pow(1024, index)).toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
 }
 
 function slugifyText(value: string) {

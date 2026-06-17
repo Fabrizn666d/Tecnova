@@ -39,6 +39,8 @@ export default async function Home() {
   const heroBanner = await prisma.banner
     .findFirst({ where: { activo: true, posicion: "hero" }, orderBy: { orden: "asc" } })
     .catch(() => null);
+  const heroCtaLink = normalizeCatalogLink(heroBanner?.ctaLink, "/productos");
+  const heroCtaLink2 = normalizeCatalogLink(heroBanner?.ctaLink2, "/repuestos");
 
   const mainCategories = [
     ...categories.map((category) => ({
@@ -69,10 +71,10 @@ export default async function Home() {
               {heroBanner?.descripcion || "Venta de equipos, repuestos, instalación, mantenimiento y reparación para panaderías, restaurantes e industria alimentaria."}
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <Link href={heroBanner?.ctaLink || "/productos"} className="inline-flex items-center gap-2 rounded-full bg-tecnova-red px-5 py-3 text-sm font-black text-white hover:bg-red-700">
+              <Link href={heroCtaLink} className="inline-flex items-center gap-2 rounded-full bg-tecnova-red px-5 py-3 text-sm font-black text-white hover:bg-red-700">
                 {heroBanner?.ctaTexto || "Ver Productos"} <ArrowRight size={17} />
               </Link>
-              <Link href={heroBanner?.ctaLink2 || "/repuestos"} className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-black text-black hover:bg-neutral-100">
+              <Link href={heroCtaLink2} className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-black text-black hover:bg-neutral-100">
                 {heroBanner?.ctaTexto2 || "Ver Repuestos"} <ArrowRight size={17} />
               </Link>
               <Link href="/cotizacion" className="inline-flex items-center gap-2 rounded-full bg-amber-300 px-5 py-3 text-sm font-black text-black hover:bg-amber-200">
@@ -225,6 +227,12 @@ export default async function Home() {
       <SiteFooter settings={settings} />
     </main>
   );
+}
+
+function normalizeCatalogLink(value: string | null | undefined, fallback: string) {
+  const href = String(value || "").trim();
+  if (href === "#catalogo" || href === "/#catalogo") return "/productos";
+  return href || fallback;
 }
 
 function HomeCatalog({
