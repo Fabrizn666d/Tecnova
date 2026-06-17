@@ -1,5 +1,6 @@
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
+import { safeImagePath } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
 import { getSettingsMap } from "@/lib/settings";
 import { Factory, ShieldCheck, Target, Users } from "lucide-react";
@@ -50,7 +51,7 @@ export default async function NosotrosPage() {
       <section className="mx-auto max-w-[1540px] px-4 py-10 sm:px-5 lg:px-14">
         <div className="grid gap-7 lg:grid-cols-[0.92fr_1.08fr] lg:items-stretch">
           <div className="relative min-h-[420px] overflow-hidden rounded-[30px] bg-black text-white shadow-lift">
-            <Image src={settings.nosotros_imagen || "/hero-tecnova-industrial.png"} alt={settings.nosotros_titulo || "Tecnova Perú"} fill priority sizes="(max-width: 1024px) 100vw, 45vw" className="object-cover" />
+            <Image src={safeImagePath(settings.nosotros_imagen) || "/hero-tecnova-industrial.png"} alt={settings.nosotros_titulo || "Tecnova Perú"} fill priority sizes="(max-width: 1024px) 100vw, 45vw" className="object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/10" />
             <div className="absolute inset-x-6 bottom-6 sm:inset-x-9 sm:bottom-9">
               <p className="text-xs font-black uppercase tracking-[0.18em] text-red-200">Nosotros</p>

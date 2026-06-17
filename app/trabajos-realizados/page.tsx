@@ -12,6 +12,9 @@ export const metadata: Metadata = {
   description: "Reparaciones, mantenimientos, automatizaciones, instalaciones y entregas realizadas por Tecnova.",
 };
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function TrabajosPage() {
   const settings = await getSettingsMap();
   const projects = await prisma.project.findMany({ where: { activo: true }, orderBy: [{ destacado: "desc" }, { orden: "asc" }] });

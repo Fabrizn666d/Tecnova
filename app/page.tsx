@@ -3,7 +3,7 @@ import GoogleMapSection from "@/components/GoogleMapSection";
 import ProductCard from "@/components/ProductCard";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
-import { getFeaturedProducts, getFeaturedSpareParts, productImage, toCatalogCard } from "@/lib/catalog";
+import { getFeaturedProducts, getFeaturedSpareParts, productImage, safeImagePath, toCatalogCard } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
 import { getSettingsMap } from "@/lib/settings";
 import { ArrowRight, Flame, Headphones, Layers, Settings, ShieldCheck, Wrench, Zap } from "lucide-react";
@@ -134,7 +134,7 @@ export default async function Home() {
             <div className="brand-marquee-track flex w-max items-center gap-12">
               {marqueeBrands.map((brand, index) => (
                 <div key={`${brand.id}-${index}`} className="flex h-20 w-44 shrink-0 items-center justify-center">
-                  <Image src={brand.logo || "/logo.png"} alt={brand.nombre} width={160} height={64} className="max-h-16 w-auto max-w-full object-contain" />
+                  <Image src={safeImagePath(brand.logo) || "/logo.png"} alt={brand.nombre} width={160} height={64} className="max-h-16 w-auto max-w-full object-contain" />
                 </div>
               ))}
             </div>

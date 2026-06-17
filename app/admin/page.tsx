@@ -5,6 +5,7 @@ import {
   Boxes,
   CircleHelp,
   ClipboardList,
+  ExternalLink,
   FileWarning,
   FolderKanban,
   ImageIcon,
@@ -637,6 +638,9 @@ export default function AdminPage() {
               <button type="button" onClick={() => setMobileNavOpen(true)} className="inline-grid h-11 w-11 place-items-center rounded-lg bg-black text-white lg:hidden" aria-label="Abrir menu">
                 <Menu size={18} />
               </button>
+              <a href="/" target="_blank" rel="noreferrer" className="inline-flex h-11 items-center gap-2 rounded-lg border border-neutral-200 bg-white px-4 text-sm font-black">
+                <ExternalLink size={17} /> Ver sitio web
+              </a>
               <select
                 value={active}
                 onChange={(event) => setActive(event.target.value as PanelKey)}
@@ -1259,12 +1263,27 @@ function GalleryField({
 }
 
 function FieldLabel({ label, tooltip }: { label: string; tooltip: string }) {
+  const [open, setOpen] = useState(false);
   return (
-    <span className="inline-flex items-center gap-1.5">
+    <span className="relative inline-flex items-center gap-1.5">
       {label}
-      <span title={tooltip} aria-label={tooltip} className="inline-flex">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        onBlur={() => setOpen(false)}
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        title={tooltip}
+        aria-label={tooltip}
+        className="inline-flex"
+      >
         <CircleHelp size={14} className="text-neutral-400" />
-      </span>
+      </button>
+      {open && (
+        <span className="absolute left-0 top-6 z-40 w-64 rounded-lg bg-neutral-950 p-3 text-xs font-bold leading-5 text-white shadow-lift">
+          {tooltip}
+        </span>
+      )}
     </span>
   );
 }

@@ -1,11 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
 export default function AdminLoginPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const [email, setEmail] = useState("admin@tecnovaperu.com");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -26,7 +27,7 @@ export default function AdminLoginPage() {
       setError(payload.message || "No se pudo iniciar sesión.");
       return;
     }
-    router.push("/admin");
+    router.push(pathname.startsWith("/panel-tecnova") ? "/panel-tecnova" : "/admin");
   }
 
   return (

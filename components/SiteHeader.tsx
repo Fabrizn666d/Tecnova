@@ -28,6 +28,8 @@ export default function SiteHeader({
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [quoteCount, setQuoteCount] = useState(0);
   const [logoSrc, setLogoSrc] = useState(logo || "/logo.png");
+  const cleanWhatsapp = (whatsapp || "").replace(/\D/g, "");
+  const visibleWhatsapp = whatsappDisplay?.trim();
 
   useEffect(() => {
     const sync = () => setQuoteCount(readQuoteItems().reduce((total, item) => total + item.cantidad, 0));
@@ -42,9 +44,7 @@ export default function SiteHeader({
 
   useEffect(() => {
     const trimmed = query.trim();
-    if (trimmed.length < 2) {
-      return;
-    }
+    if (trimmed.length < 2) return;
 
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
@@ -137,21 +137,17 @@ export default function SiteHeader({
               </span>
             )}
           </Link>
-          <a
-            href={`https://wa.me/${whatsapp}?text=${encodeURIComponent("Hola Tecnova, quiero solicitar una cotización.")}`}
-            target="_blank"
-            rel="noreferrer"
-            className="hidden rounded-full bg-tecnova-red px-5 py-2.5 text-sm font-black text-white transition hover:bg-red-700 sm:inline-flex"
-          >
-            {whatsappDisplay}
-          </a>
-          <button
-            type="button"
-            onClick={() => setOpen((value) => !value)}
-            className="grid h-10 w-10 place-items-center rounded-full border border-neutral-200 xl:hidden"
-            aria-label="Abrir menú"
-            aria-expanded={open}
-          >
+          {cleanWhatsapp && visibleWhatsapp && (
+            <a
+              href={`https://wa.me/${cleanWhatsapp}?text=${encodeURIComponent("Hola Tecnova, quiero solicitar una cotización.")}`}
+              target="_blank"
+              rel="noreferrer"
+              className="hidden rounded-full bg-tecnova-red px-5 py-2.5 text-sm font-black text-white transition hover:bg-red-700 sm:inline-flex"
+            >
+              {visibleWhatsapp}
+            </a>
+          )}
+          <button type="button" onClick={() => setOpen((value) => !value)} className="grid h-10 w-10 place-items-center rounded-full border border-neutral-200 xl:hidden" aria-label="Abrir menu" aria-expanded={open}>
             {open ? <X size={18} /> : <Menu size={18} />}
           </button>
         </div>

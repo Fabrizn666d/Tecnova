@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import type { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export function GET(request: NextRequest) {
   return listAdmin(request, "configuracion");

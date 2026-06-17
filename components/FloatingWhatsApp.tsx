@@ -11,7 +11,7 @@ export default function FloatingWhatsApp({
   message?: string;
 }) {
   const pathname = usePathname();
-  if (pathname.startsWith("/admin")) return null;
+  if (pathname.startsWith("/admin") || pathname.startsWith("/panel-tecnova")) return null;
 
   const phone = (whatsapp || "51937492227").replace(/\D/g, "") || "51937492227";
   const text = message || "Hola Tecnova, quiero solicitar información.";

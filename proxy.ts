@@ -21,20 +21,22 @@ async function hasValidToken(request: NextRequest) {
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const isLoginPath = pathname === "/admin/login";
+  const isPanelPath = pathname.startsWith("/panel-tecnova");
+  const panelBase = isPanelPath ? "/panel-tecnova" : "/admin";
+  const isLoginPath = pathname === `${panelBase}/login`;
   const admin = await hasValidToken(request);
 
   if (!admin && !isLoginPath) {
-    return NextResponse.redirect(new URL("/admin/login", request.url));
+    return NextResponse.redirect(new URL(`${panelBase}/login`, request.url));
   }
 
   if (admin && isLoginPath) {
-    return NextResponse.redirect(new URL("/admin", request.url));
+    return NextResponse.redirect(new URL(panelBase, request.url));
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin/:path*", "/panel-tecnova/:path*"],
 };

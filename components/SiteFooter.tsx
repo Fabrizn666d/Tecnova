@@ -1,21 +1,29 @@
+import { safeImagePath } from "@/lib/catalog";
 import { repairText } from "@/lib/text";
 import { Mail, MapPin, MessageCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { FaFacebookF, FaInstagram, FaTiktok, FaYoutube } from "react-icons/fa";
 
 export default function SiteFooter({ settings }: { settings: Record<string, string> }) {
-  const footerLogo = settings.logo_footer || "/logo.png";
+  const footerLogo = safeImagePath(settings.logo_footer) || "/logo.png";
   const description = repairText(
     settings.footer_descripcion ||
-      "Maquinaria industrial, repuestos y servicio tecnico para panificacion, produccion alimentaria y automatizacion."
+      "Maquinaria industrial, repuestos y servicio técnico para panificación, producción alimentaria y automatización."
   );
-  const copyright = repairText(settings.copyright_texto || "© 2026 Tecnova Peru. Todos los derechos reservados.");
+  const copyright = repairText(settings.copyright_texto || "© 2026 Tecnova Perú. Todos los derechos reservados.");
   const designer = repairText(settings.designer_texto || "Designed and developed by Fabrizio Apaza");
+  const socialLinks = [
+    ["Instagram", settings.instagram_url, FaInstagram],
+    ["TikTok", settings.tiktok_url, FaTiktok],
+    ["Facebook", settings.facebook_url, FaFacebookF],
+    ["YouTube", settings.youtube_url, FaYoutube],
+  ] as const;
   const legalLinks = [
     [settings.legal_libro_label || "Libro de Reclamaciones", settings.legal_libro_url || "/libro-de-reclamaciones"],
-    [settings.legal_privacidad_label || "Politica de Privacidad", settings.legal_privacidad_url || "/politica-privacidad"],
-    [settings.legal_cookies_label || "Politica de Cookies", settings.legal_cookies_url || "/politica-cookies"],
-    [settings.legal_terminos_label || "Terminos y Condiciones", settings.legal_terminos_url || "/terminos-y-condiciones"],
+    [settings.legal_privacidad_label || "Política de Privacidad", settings.legal_privacidad_url || "/politica-privacidad"],
+    [settings.legal_cookies_label || "Política de Cookies", settings.legal_cookies_url || "/politica-cookies"],
+    [settings.legal_terminos_label || "Términos y Condiciones", settings.legal_terminos_url || "/terminos-y-condiciones"],
     [settings.legal_aviso_label || "Aviso Legal", settings.legal_aviso_url || "/aviso-legal"],
     [settings.legal_cambios_label || "Cambios y Devoluciones", settings.legal_cambios_url || "/cambios-y-devoluciones"],
   ] as const;
@@ -26,7 +34,7 @@ export default function SiteFooter({ settings }: { settings: Record<string, stri
         <div className="grid gap-10 border-b border-neutral-200 pb-10 lg:grid-cols-[1.15fr_0.8fr_0.8fr_1fr]">
           <div>
             <div className="relative h-16 w-[212px] max-w-full">
-              <Image src={footerLogo} alt="Tecnova Peru" fill sizes="212px" className="object-contain object-left" />
+              <Image src={footerLogo} alt="Tecnova Perú" fill sizes="212px" className="object-contain object-left" />
             </div>
             <p className="mt-5 max-w-sm text-sm font-semibold leading-7 text-tecnova-steel">{description}</p>
             <div className="mt-6 space-y-3 text-sm font-bold text-tecnova-dark">
@@ -34,6 +42,18 @@ export default function SiteFooter({ settings }: { settings: Record<string, stri
               <p className="flex items-center gap-3 break-all"><Mail size={18} />{repairText(settings.email)}</p>
               <p className="flex items-center gap-3"><MapPin size={18} />{repairText(settings.direccion)}</p>
             </div>
+            {socialLinks.some(([, href]) => href) && (
+              <div className="mt-6">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-neutral-500">Síguenos</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {socialLinks.filter(([, href]) => href).map(([label, href, Icon]) => (
+                    <a key={label} href={href} target="_blank" rel="noreferrer" aria-label={label} className="grid h-10 w-10 place-items-center rounded-full bg-white text-neutral-900 transition hover:bg-tecnova-red hover:text-white">
+                      <Icon size={18} />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div>
@@ -47,7 +67,7 @@ export default function SiteFooter({ settings }: { settings: Record<string, stri
           </div>
 
           <div>
-            <h3 className="text-sm font-black uppercase tracking-[0.16em]">Legal Peru</h3>
+            <h3 className="text-sm font-black uppercase tracking-[0.16em]">Legal Perú</h3>
             <div className="mt-5 grid gap-3 text-sm font-semibold text-tecnova-steel">
               {legalLinks.map(([label, href]) => (
                 <Link key={href} href={href} className="hover:text-tecnova-red">
@@ -60,12 +80,12 @@ export default function SiteFooter({ settings }: { settings: Record<string, stri
           <div>
             <h3 className="text-sm font-black uppercase tracking-[0.16em]">Datos legales</h3>
             <div className="mt-5 space-y-3 text-sm font-semibold leading-6 text-tecnova-steel">
-              <p>Razon social: {repairText(settings.razon_social || settings.empresa_nombre)}</p>
+              <p>Razón social: {repairText(settings.razon_social || settings.empresa_nombre)}</p>
               <p>RUC: {settings.ruc || "Por actualizar"}</p>
-              <p>Direccion: {repairText(settings.direccion)}</p>
+              <p>Dirección: {repairText(settings.direccion)}</p>
             </div>
             <a
-              href={`https://wa.me/${settings.whatsapp || "51937492227"}?text=${encodeURIComponent(settings.mensaje_whatsapp || "Hola Tecnova, quiero solicitar informacion.")}`}
+              href={`https://wa.me/${settings.whatsapp || "51937492227"}?text=${encodeURIComponent(settings.mensaje_whatsapp || "Hola Tecnova, quiero solicitar información.")}`}
               target="_blank"
               rel="noreferrer"
               className="mt-6 inline-flex rounded-full bg-black px-5 py-3 text-sm font-black text-white transition hover:bg-tecnova-red"
