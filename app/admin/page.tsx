@@ -215,6 +215,18 @@ const productAdvancedFields: FieldConfig[] = [
   { key: "seoDesc", label: "SEO descripción", tooltip: "Resumen corto para resultados de búsqueda.", type: "textarea" },
 ];
 
+const visualProductFields = new Set(["tags", "especificaciones", "caracteristicas", "aplicaciones"]);
+
+const technicalTemplates: Record<string, string[]> = {
+  Horno: ["Capacidad", "Bandejas", "Temperatura", "Voltaje", "Potencia", "Medidas", "Material", "Combustible", "Sistema de vapor"],
+  Laminadora: ["Ancho de laminado", "Espesor", "Voltaje", "Potencia", "Peso", "Medidas"],
+  Amasadora: ["Capacidad", "Litros", "Voltaje", "Potencia", "Peso", "Medidas", "Velocidades"],
+  Batidora: ["Capacidad", "Litros", "Voltaje", "Potencia", "Velocidades", "Peso", "Medidas"],
+  Rebanadora: ["Capacidad", "Cantidad de cortes", "Espesor de corte", "Voltaje", "Potencia", "Peso", "Medidas"],
+  Divisora: ["Capacidad", "Divisiones", "Rango de gramaje", "Voltaje", "Potencia", "Peso", "Medidas"],
+  Prensa: ["Capacidad", "Diámetro", "Presión", "Voltaje", "Potencia", "Peso", "Medidas"],
+};
+
 const configGroups: { title: string; fields: FieldConfig[] }[] = [
   {
     title: "Empresa",
@@ -456,6 +468,10 @@ export default function AdminPage() {
         }
       );
       const result = await safeJson(response);
+      if (response.status === 401) {
+        setMessage("Tu sesión expiró. Inicia sesión nuevamente.");
+        return;
+      }
       if (!response.ok || !result.ok) {
         setMessage(result.message || "No se pudo guardar.");
         return;
@@ -489,6 +505,10 @@ export default function AdminPage() {
         body: JSON.stringify(payload),
       });
       const result = await safeJson(response);
+      if (response.status === 401) {
+        setMessage("Tu sesión expiró. Inicia sesión nuevamente.");
+        return;
+      }
       if (!response.ok || !result.ok) {
         setMessage(result.message || "No se pudo guardar el bloque.");
         return;
@@ -511,6 +531,10 @@ export default function AdminPage() {
     try {
       const response = await fetch(`/api/admin/${activeResource}/${id}`, { method: "DELETE" });
       const payload = await safeJson(response);
+      if (response.status === 401) {
+        setMessage("Tu sesión expiró. Inicia sesión nuevamente.");
+        return;
+      }
       if (!response.ok || !payload.ok) {
         setMessage(payload.message || `No se pudo ${action} el registro.`);
         return;
@@ -563,6 +587,10 @@ export default function AdminPage() {
         form.set("folder", activeResource);
         const response = await fetch("/api/upload", { method: "POST", body: form });
         const payload = await safeJson(response);
+        if (response.status === 401) {
+          setMessage("Tu sesión expiró. Inicia sesión nuevamente.");
+          return;
+        }
         if (!response.ok || !payload.ok) {
           setMessage(payload.message || "No se pudo subir la imagen.");
           return;
@@ -959,7 +987,14 @@ function ProductForm({
       {advancedOpen && (
         <div className="space-y-4 border-t border-neutral-100 pt-4">
           <GalleryField field="imagenes" label="Galeria de imagenes" tooltip="Sube varias imagenes, reordenalas o elimina las que no van en la ficha." value={selected.imagenes} uploading={uploadingField === "imagenes"} onUpload={onUpload} onChange={onChange} />
-          {productAdvancedFields.map((field) => (
+          <TechnicalSpecsEditor value={selected.especificaciones} onChange={onChange} />
+          <StringListEditor field="caracteristicas" label="Características" tooltip="Puntos visibles en la ficha del producto. Agrega una línea por beneficio o atributo." value={selected.caracteristicas} onChange={onChange} placeholder="Acero inoxidable 304" />
+          <StringListEditor field="aplicaciones" label="Aplicaciones" tooltip="Usos recomendados del equipo o repuesto." value={selected.aplicaciones} onChange={onChange} placeholder="Panaderias y pastelerias" />
+          <StringListEditor field="tags" label="Tags" tooltip="Palabras de búsqueda internas. No uses comas ni corchetes; agrega una por fila." value={selected.tags} onChange={onChange} placeholder="horno industrial" />
+          {kind === "repuestos" && (
+            <StringListEditor field="compatibilidad" label="Compatibilidad" tooltip="Equipos, modelos o familias compatibles con este repuesto." value={selected.compatibilidad} onChange={onChange} placeholder="Horno rotativo 18 bandejas" />
+          )}
+          {productAdvancedFields.filter((field) => !visualProductFields.has(field.key)).map((field) => (
             <DynamicField key={field.key} config={field} value={selected[field.key]} onChange={onChange} />
           ))}
           {kind === "repuestos" && (
@@ -1273,6 +1308,154 @@ function UploadField({
   );
 }
 
+type TechnicalSpecRow = {
+  clave: string;
+  valor: string;
+};
+
+function TechnicalSpecsEditor({
+  value,
+  onChange,
+}: {
+  value: unknown;
+  onChange: (field: string, value: unknown) => void;
+}) {
+  const rows = parseSpecRows(value);
+
+  function update(nextRows: TechnicalSpecRow[]) {
+    onChange("especificaciones", JSON.stringify(nextRows));
+  }
+
+  function updateRow(index: number, key: keyof TechnicalSpecRow, nextValue: string) {
+    const next = rows.map((row, rowIndex) => (rowIndex === index ? { ...row, [key]: nextValue } : row));
+    update(next);
+  }
+
+  function addRow() {
+    update([...rows, { clave: "", valor: "" }]);
+  }
+
+  function applyTemplate(templateName: string) {
+    const fields = technicalTemplates[templateName] || [];
+    if (fields.length === 0) return;
+    const existing = new Set(rows.map((row) => normalizeKey(row.clave)));
+    const additions = fields
+      .filter((field) => !existing.has(normalizeKey(field)))
+      .map((field) => ({ clave: field, valor: "" }));
+    if (additions.length > 0) update([...rows, ...additions]);
+  }
+
+  return (
+    <section className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <FieldLabel label="Ficha técnica" tooltip="Datos técnicos del producto. Se guardan como ficha ordenada, sin escribir JSON." />
+          <p className="mt-1 text-xs font-semibold text-neutral-500">Nombre del dato y valor visible en la ficha pública.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <select
+            defaultValue=""
+            onChange={(event) => {
+              applyTemplate(event.target.value);
+              event.target.value = "";
+            }}
+            className="h-10 rounded-lg border border-neutral-200 bg-white px-3 text-xs font-black outline-none focus:border-tecnova-red"
+            aria-label="Usar plantilla de ficha técnica"
+          >
+            <option value="">Usar plantilla</option>
+            {Object.keys(technicalTemplates).map((template) => (
+              <option key={template} value={template}>{template}</option>
+            ))}
+          </select>
+          <button type="button" onClick={addRow} className="inline-flex h-10 items-center gap-2 rounded-lg bg-tecnova-red px-3 text-xs font-black text-white transition hover:bg-red-700">
+            <Plus size={14} /> Agregar dato técnico
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-4 space-y-2">
+        {rows.length === 0 && (
+          <div className="rounded-lg border border-dashed border-neutral-300 bg-white p-4 text-center text-xs font-black uppercase tracking-[0.12em] text-neutral-400">
+            Sin datos técnicos
+          </div>
+        )}
+        {rows.map((row, index) => (
+          <div key={index} className="grid gap-2 rounded-lg bg-white p-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_auto]">
+            <input
+              value={row.clave}
+              onChange={(event) => updateRow(index, "clave", event.target.value)}
+              placeholder="Voltaje"
+              className="h-11 min-w-0 rounded-lg border border-neutral-200 px-3 text-sm font-semibold outline-none focus:border-tecnova-red"
+            />
+            <input
+              value={row.valor}
+              onChange={(event) => updateRow(index, "valor", event.target.value)}
+              placeholder="220V"
+              className="h-11 min-w-0 rounded-lg border border-neutral-200 px-3 text-sm font-semibold outline-none focus:border-tecnova-red"
+            />
+            <button type="button" onClick={() => update(rows.filter((_, rowIndex) => rowIndex !== index))} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-red-50 px-3 text-xs font-black text-tecnova-red">
+              <Trash2 size={14} /> Eliminar
+            </button>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function StringListEditor({
+  field,
+  label,
+  tooltip,
+  value,
+  onChange,
+  placeholder,
+}: {
+  field: string;
+  label: string;
+  tooltip: string;
+  value: unknown;
+  onChange: (field: string, value: unknown) => void;
+  placeholder: string;
+}) {
+  const rows = parseStringRows(value);
+
+  function update(nextRows: string[]) {
+    onChange(field, JSON.stringify(nextRows));
+  }
+
+  return (
+    <section className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <FieldLabel label={label} tooltip={tooltip} />
+        <button type="button" onClick={() => update([...rows, ""])} className="inline-flex h-10 items-center gap-2 rounded-lg bg-neutral-900 px-3 text-xs font-black text-white transition hover:bg-black">
+          <Plus size={14} /> Agregar
+        </button>
+      </div>
+      <div className="mt-4 space-y-2">
+        {rows.length === 0 && (
+          <div className="rounded-lg border border-dashed border-neutral-300 bg-white p-4 text-center text-xs font-black uppercase tracking-[0.12em] text-neutral-400">
+            Sin datos cargados
+          </div>
+        )}
+        {rows.map((row, index) => (
+          <div key={index} className="grid gap-2 rounded-lg bg-white p-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+            <input
+              value={row}
+              onChange={(event) => update(rows.map((item, rowIndex) => (rowIndex === index ? event.target.value : item)))}
+              placeholder={placeholder}
+              className="h-11 min-w-0 rounded-lg border border-neutral-200 px-3 text-sm font-semibold outline-none focus:border-tecnova-red"
+            />
+            <button type="button" onClick={() => update(rows.filter((_, rowIndex) => rowIndex !== index))} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-red-50 px-3 text-xs font-black text-tecnova-red">
+              <Trash2 size={14} /> Eliminar
+            </button>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function GalleryField({
   field,
   label,
@@ -1475,7 +1658,7 @@ function normalizeStringArray(value: unknown) {
   const trimmed = value.trim();
   if (!trimmed) return "[]";
   const parsed = parseJsonArray<unknown>(trimmed);
-  if (parsed.length > 0) return JSON.stringify(parsed);
+  if (parsed.length > 0) return JSON.stringify(parsed.map((item) => String(item || "").trim()).filter(Boolean));
   return JSON.stringify(trimmed.split(/[\n,]+/).map((item) => item.trim()).filter(Boolean));
 }
 
@@ -1484,8 +1667,8 @@ function normalizeSpecArray(value: unknown) {
   if (typeof value !== "string") return JSON.stringify(value);
   const trimmed = value.trim();
   if (!trimmed) return "[]";
-  const parsed = parseJsonArray<unknown>(trimmed);
-  if (parsed.length > 0) return JSON.stringify(parsed);
+  const parsed = parseSpecRows(trimmed);
+  if (parsed.length > 0) return JSON.stringify(parsed.filter((item) => item.clave.trim() && item.valor.trim()));
   return JSON.stringify(
     trimmed
       .split(/\n+/)
@@ -1495,6 +1678,43 @@ function normalizeSpecArray(value: unknown) {
       })
       .filter((item) => item.clave && item.valor)
   );
+}
+
+function parseSpecRows(value: unknown): TechnicalSpecRow[] {
+  const parsed = parseJsonArray<Partial<TechnicalSpecRow>>(value);
+  if (parsed.length > 0) {
+    return parsed.map((item) => ({
+      clave: String(item?.clave || ""),
+      valor: String(item?.valor || ""),
+    }));
+  }
+
+  const text = String(value || "").trim();
+  if (!text) return [];
+  return text
+    .split(/\n+/)
+    .map((line) => {
+      const [clave, ...rest] = line.split(":");
+      return { clave: clave.trim(), valor: rest.join(":").trim() };
+    })
+    .filter((item) => item.clave || item.valor);
+}
+
+function parseStringRows(value: unknown) {
+  const parsed = parseJsonArray<unknown>(value);
+  if (parsed.length > 0) return parsed.map((item) => String(item || ""));
+
+  const text = String(value || "").trim();
+  if (!text) return [];
+  return text.split(/[\n,]+/).map((item) => item.trim()).filter(Boolean);
+}
+
+function normalizeKey(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
 }
 
 function parseJsonArray<T = unknown>(value?: unknown): T[] {
