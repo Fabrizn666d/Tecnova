@@ -334,6 +334,7 @@ export default function AdminPage() {
   const selectedRef = useRef<Record<string, unknown>>({});
   const [query, setQuery] = useState("");
   const [message, setMessage] = useState("");
+  const [toastMessage, setToastMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingField, setUploadingField] = useState("");
@@ -356,6 +357,11 @@ export default function AdminPage() {
       selectedRef.current = resolved;
       return resolved;
     });
+  }, []);
+
+  const showToast = useCallback((text: string) => {
+    setToastMessage(text);
+    window.setTimeout(() => setToastMessage(""), 3500);
   }, []);
 
   const loadCategories = useCallback(async () => {
@@ -490,7 +496,8 @@ export default function AdminPage() {
         setMessage(result.message || "No se pudo guardar.");
         return;
       }
-      setMessage("Guardado correctamente.");
+      setMessage("Cambios guardados correctamente");
+      showToast("Cambios guardados correctamente");
       await Promise.all([
         load(),
         refreshSummary(),
@@ -527,7 +534,8 @@ export default function AdminPage() {
         setMessage(result.message || "No se pudo guardar el bloque.");
         return;
       }
-      setMessage(`Cambios guardados correctamente: ${group.title}.`);
+      setMessage("Cambios guardados correctamente");
+      showToast("Cambios guardados correctamente");
       await load();
     } catch {
       setMessage("No se pudo guardar. Revisa los campos e intenta nuevamente.");
@@ -903,6 +911,11 @@ export default function AdminPage() {
           </div>
         )}
       </section>
+      {toastMessage && (
+        <div className="fixed bottom-5 right-5 z-[70] max-w-sm rounded-lg bg-neutral-950 px-5 py-4 text-sm font-black text-white shadow-lift">
+          {toastMessage}
+        </div>
+      )}
     </main>
   );
 }
@@ -1077,6 +1090,7 @@ function BackupsPanel({ isSuperAdmin }: { isSuperAdmin: boolean }) {
         </div>
       </div>
 
+      {isSuperAdmin ? (
       <div className="rounded-lg bg-neutral-950 p-5 text-white shadow-sm">
         <p className="text-xs font-black uppercase tracking-[0.14em] text-red-300">Backups automáticos</p>
         <h4 className="mt-2 text-xl font-black">Activar cron en el VPS</h4>
@@ -1086,6 +1100,14 @@ function BackupsPanel({ isSuperAdmin }: { isSuperAdmin: boolean }) {
         <pre className="mt-4 overflow-x-auto rounded-lg bg-black p-4 text-xs font-bold text-white"><code>{`crontab -e\n\n0 3 * * * cd /root/Tecnova && bash scripts/backup.sh`}</code></pre>
         <p className="mt-3 text-sm font-black text-red-200">Este paso se realiza una sola vez en el VPS.</p>
       </div>
+      ) : (
+        <div className="rounded-lg bg-neutral-950 p-5 text-white shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.14em] text-red-300">Backups automáticos</p>
+          <p className="mt-2 text-sm font-semibold leading-6 text-white/70">
+            Los backups automáticos están administrados por el sistema.
+          </p>
+        </div>
+      )}
     </section>
   );
 }
