@@ -225,11 +225,11 @@ async function main() {
   });
 
   await prisma.adminUser.upsert({
-    where: { email: "admin@tecnovaperu.com" },
+    where: { email: "admin@tecnovaperu.com.pe" },
     update: {},
     create: {
       nombre: "Administrador Tecnova",
-      email: "admin@tecnovaperu.com",
+      email: "admin@tecnovaperu.com.pe",
       password: await bcrypt.hash("Tecnova2026!", 12),
       rol: "SUPER_ADMIN",
       activo: true,
@@ -240,7 +240,7 @@ async function main() {
 main()
   .then(async () => {
     await prisma.$disconnect();
-    console.log("Seed Tecnova completado. Admin: admin@tecnovaperu.com / Tecnova2026!");
+    console.log("Seed Tecnova completado. Admin: admin@tecnovaperu.com.pe / Tecnova2026!");
   })
   .catch(async (error) => {
     console.error(error);

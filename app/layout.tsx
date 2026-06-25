@@ -18,7 +18,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://tecnovaperu.com"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://tecnovaperu.com.pe"),
   title: {
     default: "Tecnova Perú | Maquinaria industrial",
     template: "%s",

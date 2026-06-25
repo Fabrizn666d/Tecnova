@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import type { MetadataRoute } from "next";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tecnovaperu.com";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tecnovaperu.com.pe";
   const [products, spareParts, services, projects, categories] = await Promise.all([
     prisma.product.findMany({ where: { activo: true, tipo: "producto" }, select: { slug: true, updatedAt: true } }),
     prisma.product.findMany({ where: { activo: true, tipo: "repuesto" }, select: { slug: true, updatedAt: true } }),

@@ -153,7 +153,7 @@ function ProductDetail({ product, related, whatsapp }: { product: ProductWithCat
 }
 
 function buildProductJsonLd(product: ProductWithCategory, image: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tecnovaperu.com";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tecnovaperu.com.pe";
   return {
     "@context": "https://schema.org",
     "@type": "Product",

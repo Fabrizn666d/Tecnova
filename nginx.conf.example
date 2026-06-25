@@ -1,6 +1,6 @@
 server {
     listen 80;
-    server_name tecnovaperu.com www.tecnovaperu.com;
+    server_name tecnovaperu.com.pe www.tecnovaperu.com.pe;
 
     location / {
         proxy_pass http://localhost:3000;
