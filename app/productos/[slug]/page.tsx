@@ -5,6 +5,7 @@ import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import { formatPrice } from "@/lib/format";
 import { parseJsonArray, productImage, safeImagePath, toCatalogCard, type SpecItem } from "@/lib/catalog";
+import { getProductBackgroundImage, productSelectWithOptionalBackground } from "@/lib/product-db";
 import { prisma } from "@/lib/prisma";
 import { getSettingsMap } from "@/lib/settings";
 import { ExternalLink } from "lucide-react";
@@ -16,14 +17,14 @@ type Props = {
   params: Promise<{ slug: string }>;
 };
 
-type ProductWithCategory = Prisma.ProductGetPayload<{ include: { category: true } }>;
+type ProductWithCategory = Prisma.ProductGetPayload<{ select: Awaited<ReturnType<typeof productSelectWithOptionalBackground>> }>;
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const product = await prisma.product.findFirst({ where: { slug, activo: true, tipo: "producto" }, include: { category: true } });
+  const product = await prisma.product.findFirst({ where: { slug, activo: true, tipo: "producto" }, select: await productSelectWithOptionalBackground() });
   if (!product) return { title: "Producto no encontrado | Tecnova Perú" };
   const image = productImage(product);
   const keywords = parseJsonArray<string>(product.tags).join(", ");
@@ -46,13 +47,13 @@ export default async function ProductPage({ params }: Props) {
   const settings = await getSettingsMap();
   const product = await prisma.product.findFirst({
     where: { slug, activo: true, tipo: "producto" },
-    include: { category: true },
+    select: await productSelectWithOptionalBackground(),
   });
   if (!product) notFound();
 
   const related = await prisma.product.findMany({
     where: { activo: true, tipo: "producto", categoryId: product.categoryId, id: { not: product.id } },
-    include: { category: true },
+    select: await productSelectWithOptionalBackground(),
     take: 3,
   });
 
@@ -78,7 +79,7 @@ function ProductDetail({ product, related, whatsapp }: { product: ProductWithCat
     <section className="mx-auto max-w-[1540px] px-4 py-8 sm:px-5 lg:px-14">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <div className="grid gap-7 lg:grid-cols-[1.05fr_0.95fr]">
-        <ProductGallery images={uniqueImages} alt={product.nombre} backgroundImage={product.backgroundImage} />
+        <ProductGallery images={uniqueImages} alt={product.nombre} backgroundImage={getProductBackgroundImage(product)} />
 
         <aside className="rounded-[30px] bg-white p-6 shadow-soft ring-1 ring-black/5 sm:p-8 lg:sticky lg:top-24 lg:self-start">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-tecnova-red">{product.category.nombre}</p>

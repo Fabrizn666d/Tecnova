@@ -4,8 +4,9 @@ import type { Prisma } from "@prisma/client";
 import { existsSync } from "fs";
 import path from "path";
 import { productBackgroundPublicFolder } from "@/lib/image-paths";
+import { getProductBackgroundImage, productSelectWithOptionalBackground } from "@/lib/product-db";
 
-export type CatalogItem = Prisma.ProductGetPayload<{ include: { category: true } }>;
+export type CatalogItem = Prisma.ProductGetPayload<{ select: Awaited<ReturnType<typeof productSelectWithOptionalBackground>> }>;
 
 export type SpecItem = {
   clave: string;
@@ -67,7 +68,7 @@ export function toCatalogCard(product: CatalogItem): CatalogCard {
     mostrarPrecio: product.mostrarPrecio,
     etiquetaPrecio: product.etiquetaPrecio,
     imagen: productImage(product),
-    backgroundImage: product.backgroundImage,
+    backgroundImage: getProductBackgroundImage(product),
     disponible: product.disponible,
     destacado: product.tipo === "repuesto" ? product.destacadoRepuesto : product.destacado,
     cotizaciones: product.cotizaciones,
@@ -88,7 +89,7 @@ export function formatPrice(price?: number | null, showPrice?: boolean | null, l
 export async function getCatalogItems(kind: CatalogKind) {
   return prisma.product.findMany({
     where: { activo: true, tipo: kind },
-    include: { category: true },
+    select: await productSelectWithOptionalBackground(),
     orderBy:
       kind === "repuesto"
         ? [{ destacadoRepuesto: "desc" }, { ordenRepuesto: "asc" }, { createdAt: "desc" }]
@@ -100,7 +101,7 @@ export async function getCatalogItems(kind: CatalogKind) {
 export async function getFeaturedProducts() {
   return prisma.product.findMany({
     where: { activo: true, tipo: "producto", destacado: true },
-    include: { category: true },
+    select: await productSelectWithOptionalBackground(),
     orderBy: [{ ordenDestacado: "asc" }, { createdAt: "desc" }],
     take: 6,
   });
@@ -109,7 +110,7 @@ export async function getFeaturedProducts() {
 export async function getFeaturedSpareParts() {
   return prisma.product.findMany({
     where: { activo: true, tipo: "repuesto", destacadoRepuesto: true },
-    include: { category: true },
+    select: await productSelectWithOptionalBackground(),
     orderBy: [{ ordenRepuesto: "asc" }, { createdAt: "desc" }],
     take: 6,
   });

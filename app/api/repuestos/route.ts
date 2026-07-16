@@ -1,5 +1,6 @@
 import { fail, ok, parsePagination } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
+import { productSelectWithOptionalBackground } from "@/lib/product-db";
 import type { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
@@ -68,7 +69,7 @@ export async function GET(request: NextRequest) {
   const [items, total] = await Promise.all([
     prisma.product.findMany({
       where,
-      include: { category: true },
+      select: await productSelectWithOptionalBackground(),
       orderBy,
       skip,
       take: limite,

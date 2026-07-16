@@ -1,6 +1,7 @@
 import { isSuperAdmin, requireAdmin } from "@/lib/auth";
 import { fail, ok, parsePagination, readJson } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
+import { productSelectWithOptionalBackground, stripUnsupportedProductFields } from "@/lib/product-db";
 import { buildResourceData, modelDelegate, type ResourceName } from "@/lib/resources";
 import bcrypt from "bcryptjs";
 import type { NextRequest } from "next/server";
@@ -33,13 +34,14 @@ export async function listAdmin(request: NextRequest, resource: ResourceName) {
       return ok({ items, total, pagina, limite });
     }
 
+    const productSelect = ["productos", "repuestos"].includes(resource) ? await productSelectWithOptionalBackground() : undefined;
     const [items, total] = await Promise.all([
       delegate.findMany({
         where,
         skip,
         take: limite,
         orderBy: buildOrder(resource),
-        include: ["productos", "repuestos"].includes(resource) ? { category: true } : undefined,
+        ...(productSelect ? { select: productSelect } : {}),
       }),
       delegate.count({ where }),
     ]);
@@ -58,7 +60,7 @@ export async function createAdmin(request: NextRequest, resource: ResourceName) 
 
     const input = await readJson<Record<string, unknown>>(request);
     const delegate = modelDelegate(prisma, resource);
-    const data = buildResourceData(resource, input);
+    const data = await prepareDataForDatabase(resource, buildResourceData(resource, input));
 
     if (resource === "usuarios") {
       const password = String(input.password || "");
@@ -86,7 +88,7 @@ export async function getAdmin(_request: NextRequest, resource: ResourceName, co
         ? await prisma.adminUser.findUnique({ where: { id }, select: adminUserSelect })
         : await modelDelegate(prisma, resource).findUnique({
             where: { id },
-            include: ["productos", "repuestos"].includes(resource) ? { category: true } : undefined,
+            ...(["productos", "repuestos"].includes(resource) ? { select: await productSelectWithOptionalBackground() } : {}),
           });
     if (!item) return fail("Registro no encontrado.", 404);
     return ok(withoutPassword(item));
@@ -104,7 +106,7 @@ export async function updateAdmin(request: NextRequest, resource: ResourceName, 
 
     const { id } = await context.params;
     const input = await readJson<Record<string, unknown>>(request);
-    const data = buildResourceData(resource, input);
+    const data = await prepareDataForDatabase(resource, buildResourceData(resource, input));
 
     if (resource === "usuarios") {
       if (id === admin.id && data.activo === false) {
@@ -236,6 +238,13 @@ function withoutPassword(item: unknown) {
   const copy = { ...(item as Record<string, unknown>) };
   delete copy.password;
   return copy;
+}
+
+async function prepareDataForDatabase(resource: ResourceName, data: Record<string, unknown>) {
+  if (resource === "productos" || resource === "repuestos") {
+    return stripUnsupportedProductFields(data);
+  }
+  return data;
 }
 
 function failFromError(error: unknown, fallback: string) {

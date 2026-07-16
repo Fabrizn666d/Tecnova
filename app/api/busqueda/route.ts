@@ -1,5 +1,6 @@
 import { fail, ok } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
+import { productSelectWithOptionalBackground } from "@/lib/product-db";
 import type { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
             { tags: { contains: q } },
           ],
         },
-        include: { category: true },
+        select: await productSelectWithOptionalBackground(),
         take: 12,
       }),
       prisma.product.findMany({
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
             { tags: { contains: q } },
           ],
         },
-        include: { category: true },
+        select: await productSelectWithOptionalBackground(),
         take: 12,
       }),
       prisma.category.findMany({ where: { activo: true, nombre: { contains: q } }, take: 6 }),
