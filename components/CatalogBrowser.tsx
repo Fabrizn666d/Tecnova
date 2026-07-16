@@ -60,8 +60,8 @@ export default function CatalogBrowser({
   }, [availability, brand, category, condition, items, maxPrice, minPrice, order, query]);
 
   return (
-    <section className="mx-auto max-w-[1540px] px-4 py-8 sm:px-5 lg:px-14">
-      <div className="grid gap-5 lg:grid-cols-[320px_1fr]">
+    <section className="mx-auto max-w-[1680px] px-4 py-8 sm:px-6">
+      <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
         <aside className="rounded-[26px] bg-white p-5 shadow-soft ring-1 ring-black/5 lg:sticky lg:top-24 lg:self-start">
           <div className="flex items-center gap-2">
             <SlidersHorizontal size={18} className="text-tecnova-red" />
@@ -114,7 +114,7 @@ export default function CatalogBrowser({
             </div>
           </div>
 
-          <div className={view === "grid" ? "grid grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-3" : "grid gap-5"}>
+          <div className={view === "grid" ? "grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-[repeat(auto-fit,minmax(380px,1fr))]" : "grid gap-5"}>
             {filtered.map((item) => (
               <ProductCard key={item.id} item={item} view={view} />
             ))}

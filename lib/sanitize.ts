@@ -49,6 +49,14 @@ export function cleanPublicAssetJsonArray(value: unknown) {
   return JSON.stringify(items);
 }
 
+export function cleanPublicFilename(value: unknown, max = 240) {
+  const cleaned = cleanText(value, max);
+  if (!cleaned) return null;
+  if (cleaned.includes("/") || cleaned.includes("\\") || cleaned === "." || cleaned === "..") return null;
+  if (/^[a-zA-Z]:/.test(cleaned)) return null;
+  return cleaned;
+}
+
 function parseArray(value: unknown) {
   if (Array.isArray(value)) return value;
   if (typeof value !== "string") return [];

@@ -1,4 +1,4 @@
-import { cleanOptionalText, cleanPublicAssetJsonArray, cleanPublicAssetPath, cleanSlug, cleanText, safeJson } from "@/lib/sanitize";
+import { cleanOptionalText, cleanPublicAssetJsonArray, cleanPublicAssetPath, cleanPublicFilename, cleanSlug, cleanText, safeJson } from "@/lib/sanitize";
 
 type RecordData = Record<string, unknown>;
 
@@ -101,6 +101,7 @@ export function buildResourceData(resource: ResourceName, input: RecordData) {
         etiquetaPrecio: cleanOptionalText(input.etiquetaPrecio, 80),
         imagenes: cleanPublicAssetJsonArray(input.imagenes),
         imagenPrincipal: cleanPublicAssetPath(input.imagenPrincipal),
+        backgroundImage: cleanPublicFilename(input.backgroundImage),
         videoUrl: cleanOptionalText(input.videoUrl, 500),
         mostrarVideo: toBool(input.mostrarVideo),
         especificaciones: safeJson(input.especificaciones),

@@ -3,7 +3,7 @@ import { mkdir, unlink } from "fs/promises";
 import path from "path";
 import sharp from "sharp";
 
-const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif", "image/svg+xml"]);
 const unsupportedAppleTypes = new Set(["image/heic", "image/heif"]);
 const maxUploadSize = 10 * 1024 * 1024;
 
@@ -19,11 +19,11 @@ export async function saveUpload(file: File, folder = "general") {
   }
 
   if (unsupportedAppleTypes.has(file.type)) {
-    throw new Error("Formato HEIC/HEIF no compatible. Convierte la imagen a JPG, PNG o WebP antes de subirla.");
+    throw new Error("Formato HEIC/HEIF no compatible. Convierte la imagen a JPG, PNG, WebP, GIF, AVIF o SVG antes de subirla.");
   }
 
   if (!allowedTypes.has(file.type)) {
-    throw new Error("Formato no permitido. Usa JPG, JPEG, PNG o WebP.");
+    throw new Error("Formato no permitido. Usa JPG, JPEG, PNG, WebP, GIF, AVIF o SVG.");
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());

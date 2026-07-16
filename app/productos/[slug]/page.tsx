@@ -78,7 +78,7 @@ function ProductDetail({ product, related, whatsapp }: { product: ProductWithCat
     <section className="mx-auto max-w-[1540px] px-4 py-8 sm:px-5 lg:px-14">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <div className="grid gap-7 lg:grid-cols-[1.05fr_0.95fr]">
-        <ProductGallery images={uniqueImages} alt={product.nombre} />
+        <ProductGallery images={uniqueImages} alt={product.nombre} backgroundImage={product.backgroundImage} />
 
         <aside className="rounded-[30px] bg-white p-6 shadow-soft ring-1 ring-black/5 sm:p-8 lg:sticky lg:top-24 lg:self-start">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-tecnova-red">{product.category.nombre}</p>
@@ -141,7 +141,7 @@ function ProductDetail({ product, related, whatsapp }: { product: ProductWithCat
       {related.length > 0 && (
         <section className="mt-10">
           <h2 className="text-3xl font-black tracking-[-0.05em] sm:text-5xl">Productos relacionados</h2>
-          <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-[repeat(auto-fit,minmax(380px,1fr))]">
             {related.map((item) => (
               <ProductCard key={item.id} item={toCatalogCard(item)} />
             ))}

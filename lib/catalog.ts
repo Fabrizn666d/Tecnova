@@ -3,6 +3,7 @@ import type { BrandOption, CatalogCard, CatalogKind, CategoryOption } from "@/li
 import type { Prisma } from "@prisma/client";
 import { existsSync } from "fs";
 import path from "path";
+import { productBackgroundPublicFolder } from "@/lib/image-paths";
 
 export type CatalogItem = Prisma.ProductGetPayload<{ include: { category: true } }>;
 
@@ -22,6 +23,7 @@ export function parseJsonArray<T = unknown>(value?: string | null): T[] {
 }
 
 const imageFallback = "/hero-tecnova-industrial.png";
+const backgroundsFolder = productBackgroundPublicFolder;
 
 export function safeImagePath(src?: string | null) {
   if (!src) return "";
@@ -37,6 +39,12 @@ export function safeImagePath(src?: string | null) {
 export function productImage(product: Pick<CatalogItem, "imagenPrincipal" | "imagenes">) {
   const candidates = [product.imagenPrincipal, ...parseJsonArray<string>(product.imagenes)];
   return candidates.map((item) => safeImagePath(item)).find(Boolean) || imageFallback;
+}
+
+export function backgroundImagePath(filename?: string | null) {
+  if (!filename || filename.includes("/") || filename.includes("\\")) return "";
+  const fullPath = path.join(process.cwd(), "public", backgroundsFolder, filename);
+  return existsSync(fullPath) ? `/${backgroundsFolder}/${filename}` : "";
 }
 
 export function productHref(product: Pick<CatalogItem, "tipo" | "slug">) {
@@ -59,6 +67,7 @@ export function toCatalogCard(product: CatalogItem): CatalogCard {
     mostrarPrecio: product.mostrarPrecio,
     etiquetaPrecio: product.etiquetaPrecio,
     imagen: productImage(product),
+    backgroundImage: product.backgroundImage,
     disponible: product.disponible,
     destacado: product.tipo === "repuesto" ? product.destacadoRepuesto : product.destacado,
     cotizaciones: product.cotizaciones,

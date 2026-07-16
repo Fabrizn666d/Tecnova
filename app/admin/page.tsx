@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import ProductImageComposite from "@/components/ProductImageComposite";
 
 type ResourceKey =
   | "productos"
@@ -63,6 +64,12 @@ type BackupItem = {
   fecha: string;
   tamano: number;
   tipo: "automatico" | "manual";
+};
+
+type BackgroundOption = {
+  filename: string;
+  url: string;
+  label: string;
 };
 
 type FieldConfig = {
@@ -125,6 +132,7 @@ const templates: Record<ResourceKey, Record<string, unknown>> = {
     mostrarPrecio: false,
     etiquetaPrecio: "Consultar precio",
     imagenPrincipal: "",
+    backgroundImage: "",
     imagenes: "[]",
     videoUrl: "",
     mostrarVideo: false,
@@ -157,6 +165,7 @@ const templates: Record<ResourceKey, Record<string, unknown>> = {
     mostrarPrecio: false,
     etiquetaPrecio: "Consultar precio",
     imagenPrincipal: "",
+    backgroundImage: "",
     imagenes: "[]",
     videoUrl: "",
     mostrarVideo: false,
@@ -341,6 +350,7 @@ export default function AdminPage() {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [uploadPreviews, setUploadPreviews] = useState<Record<string, string>>({});
   const [categories, setCategories] = useState<Record<string, unknown>[]>([]);
+  const [backgrounds, setBackgrounds] = useState<BackgroundOption[]>([]);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const isSuperAdmin = admin?.rol === "SUPER_ADMIN";
@@ -371,6 +381,16 @@ export default function AdminPage() {
       if (response.ok && payload.ok) setCategories(payload.data?.items || []);
     } catch {
       setCategories([]);
+    }
+  }, []);
+
+  const loadBackgrounds = useCallback(async () => {
+    try {
+      const response = await fetch("/api/admin/fondos-producto", { cache: "no-store" });
+      const payload = await safeJson(response);
+      if (response.ok && payload.ok) setBackgrounds(payload.data?.backgrounds || []);
+    } catch {
+      setBackgrounds([]);
     }
   }, []);
 
@@ -446,7 +466,7 @@ export default function AdminPage() {
         const mePayload = await safeJson(me);
         if (!ignore && me.ok) setAdmin(mePayload.data);
 
-        await Promise.all([loadCategories(), refreshSummary()]);
+        await Promise.all([loadCategories(), loadBackgrounds(), refreshSummary()]);
       } catch {
         if (!ignore) setMessage("No se pudo cargar la sesión del panel.");
       }
@@ -456,7 +476,7 @@ export default function AdminPage() {
     return () => {
       ignore = true;
     };
-  }, [loadCategories, refreshSummary, router]);
+  }, [loadBackgrounds, loadCategories, refreshSummary, router]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -582,13 +602,13 @@ export default function AdminPage() {
     event.currentTarget.value = "";
     if (files.length === 0 || !activeResource) return;
 
-    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    const allowedExtensions = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif", ".svg"];
     if (files.some((file) => file.type === "image/heic" || file.type === "image/heif")) {
-      setMessage("Formato HEIC/HEIF no compatible. Usa JPG, PNG o WebP.");
+      setMessage("Formato HEIC/HEIF no compatible. Usa JPG, PNG, WebP, GIF, AVIF o SVG.");
       return;
     }
-    if (files.some((file) => !allowed.includes(file.type))) {
-      setMessage("Formato no permitido. Usa JPG, JPEG, PNG o WebP.");
+    if (files.some((file) => !allowedExtensions.some((extension) => file.name.toLowerCase().endsWith(extension)))) {
+      setMessage("Formato no permitido. Usa JPG, JPEG, PNG, WebP, GIF, AVIF o SVG.");
       return;
     }
     if (files.some((file) => file.size > 10 * 1024 * 1024)) {
@@ -628,6 +648,37 @@ export default function AdminPage() {
       setMessage(files.length > 1 ? "Imagenes subidas. Recuerda guardar los cambios." : "Imagen subida. Recuerda guardar los cambios.");
     } catch {
       setMessage("No se pudo subir la imagen.");
+    } finally {
+      setUploadingField("");
+    }
+  }
+
+  async function uploadBackground(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    if (!file) return;
+
+    setUploadingField("backgroundImage");
+    setMessage("");
+    try {
+      const form = new FormData();
+      form.set("file", file);
+      const response = await fetch("/api/admin/fondos-producto", { method: "POST", body: form });
+      const payload = await safeJson(response);
+      if (response.status === 401) {
+        setMessage("Tu sesiÃ³n expirÃ³. Inicia sesiÃ³n nuevamente.");
+        return;
+      }
+      if (!response.ok || !payload.ok) {
+        setMessage(payload.message || "No se pudo subir el fondo.");
+        return;
+      }
+      const background = payload.data?.background as BackgroundOption;
+      await loadBackgrounds();
+      updateSelected((current) => ({ ...current, backgroundImage: background.filename }));
+      setMessage("Fondo subido y seleccionado. Recuerda guardar los cambios.");
+    } catch {
+      setMessage("No se pudo subir el fondo.");
     } finally {
       setUploadingField("");
     }
@@ -871,9 +922,11 @@ export default function AdminPage() {
                     advancedOpen={advancedOpen}
                     uploadPreviews={uploadPreviews}
                     uploadingField={uploadingField}
+                    backgrounds={backgrounds}
                     onToggleAdvanced={() => setAdvancedOpen((value) => !value)}
                     onChange={(field, value) => updateSelected((current) => changeProductField(current, field, value))}
                     onUpload={upload}
+                    onUploadBackground={uploadBackground}
                   />
                 ) : activeResource === "configuracion" ? (
                   <ConfigForm
@@ -1119,9 +1172,11 @@ function ProductForm({
   advancedOpen,
   uploadPreviews,
   uploadingField,
+  backgrounds,
   onToggleAdvanced,
   onChange,
   onUpload,
+  onUploadBackground,
 }: {
   kind: "productos" | "repuestos";
   selected: Record<string, unknown>;
@@ -1129,9 +1184,11 @@ function ProductForm({
   advancedOpen: boolean;
   uploadPreviews: Record<string, string>;
   uploadingField: string;
+  backgrounds: BackgroundOption[];
   onToggleAdvanced: () => void;
   onChange: (field: string, value: unknown) => void;
   onUpload: (event: ChangeEvent<HTMLInputElement>, field: string) => void;
+  onUploadBackground: (event: ChangeEvent<HTMLInputElement>) => void;
 }) {
   return (
     <div className="space-y-4">
@@ -1158,6 +1215,15 @@ function ProductForm({
         </label>
       </div>
       <UploadField field="imagenPrincipal" label="Imagen principal" tooltip="Foto principal del producto o repuesto." value={selected.imagenPrincipal} preview={uploadPreviews.imagenPrincipal} uploading={uploadingField === "imagenPrincipal"} onUpload={onUpload} />
+      <ProductBackgroundPicker
+        backgrounds={backgrounds}
+        selected={String(selected.backgroundImage || "")}
+        productImage={String(uploadPreviews.imagenPrincipal || selected.imagenPrincipal || "")}
+        productName={String(selected.nombre || "Producto")}
+        uploading={uploadingField === "backgroundImage"}
+        onSelect={(filename) => onChange("backgroundImage", filename)}
+        onUpload={onUploadBackground}
+      />
       <TextField field="descripcionCorta" label="Descripción corta" tooltip="Resumen breve que aparece en tarjetas y ficha." value={selected.descripcionCorta} onChange={onChange} textarea required />
       <ToggleField field="disponible" label="Disponible" tooltip="Activa si puede cotizarse o entregarse actualmente." value={selected.disponible} onChange={onChange} />
 
@@ -1187,6 +1253,87 @@ function ProductForm({
         </div>
       )}
     </div>
+  );
+}
+
+function ProductBackgroundPicker({
+  backgrounds,
+  selected,
+  productImage,
+  productName,
+  uploading,
+  onSelect,
+  onUpload,
+}: {
+  backgrounds: BackgroundOption[];
+  selected: string;
+  productImage: string;
+  productName: string;
+  uploading: boolean;
+  onSelect: (filename: string) => void;
+  onUpload: (event: ChangeEvent<HTMLInputElement>) => void;
+}) {
+  const inputId = "upload-background-product";
+  const selectedBackground = backgrounds.find((background) => background.filename === selected);
+
+  return (
+    <section className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <FieldLabel label="Fondo del producto" tooltip="Selecciona el ambiente visual del producto. Se guarda solo el nombre del archivo." />
+          <p className="mt-1 text-xs font-semibold text-neutral-500">Los archivos se leen automaticamente desde public/Imagess.</p>
+        </div>
+        <label htmlFor={inputId} className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-neutral-900 px-3 text-xs font-black text-white transition hover:bg-black">
+          {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} Subir nuevo fondo
+        </label>
+        <input id={inputId} type="file" accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.avif,.svg" onChange={onUpload} className="sr-only" />
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {backgrounds.map((background) => {
+          const active = background.filename === selected;
+          return (
+            <button
+              key={background.filename}
+              type="button"
+              onClick={() => onSelect(background.filename)}
+              className={`overflow-hidden rounded-lg border bg-white text-left transition ${active ? "border-tecnova-red ring-2 ring-tecnova-red" : "border-neutral-200 hover:border-neutral-400"}`}
+              title={background.filename}
+            >
+              <span className="relative block aspect-square">
+                {/* eslint-disable-next-line @next/next/no-img-element -- Admin previews read dynamic files from public/Imagess. */}
+                <img src={background.url} alt={background.label} className="h-full w-full object-cover object-center" />
+              </span>
+              <span className="block truncate px-3 py-2 text-xs font-black">{background.label}</span>
+            </button>
+          );
+        })}
+        {backgrounds.length === 0 && (
+          <div className="col-span-full grid h-28 place-items-center rounded-lg border border-dashed border-neutral-300 bg-white px-4 text-center text-xs font-black uppercase tracking-[0.12em] text-neutral-400">
+            Sin fondos cargados
+          </div>
+        )}
+      </div>
+
+      <div className="mt-4">
+        <p className="text-xs font-black uppercase tracking-[0.14em] text-neutral-500">Vista previa</p>
+        <div className="relative mt-2 aspect-square overflow-hidden rounded-lg border border-neutral-200">
+          {productImage ? (
+            <ProductImageComposite
+              productSrc={productImage}
+              backgroundImage={selectedBackground?.filename}
+              alt={productName}
+              variant="admin-preview"
+              sizes="420px"
+            />
+          ) : (
+            <div className="absolute inset-0 grid place-items-center px-4 text-center text-xs font-black uppercase tracking-[0.12em] text-neutral-400">
+              Sube una imagen principal para ver el resultado
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -1483,7 +1630,7 @@ function UploadField({
         <label htmlFor={inputId} className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-lg bg-neutral-100 px-3 text-xs font-black transition hover:bg-neutral-200">
           {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} Subir
         </label>
-        <input id={inputId} type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => onUpload(event, field)} className="sr-only" />
+        <input id={inputId} type="file" accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.avif,.svg" onChange={(event) => onUpload(event, field)} className="sr-only" />
       </div>
     </div>
   );
@@ -1695,7 +1842,7 @@ function GalleryField({
         <label htmlFor={inputId} className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-neutral-100 px-3 text-xs font-black transition hover:bg-neutral-200">
           {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} Subir imagenes
         </label>
-        <input id={inputId} type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={(event) => onUpload(event, field)} className="sr-only" />
+        <input id={inputId} type="file" multiple accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.avif,.svg" onChange={(event) => onUpload(event, field)} className="sr-only" />
       </div>
     </div>
   );

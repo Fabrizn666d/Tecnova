@@ -247,7 +247,7 @@ function HomeCatalog({
   items: ReturnType<typeof toCatalogCard>[];
 }) {
   return (
-    <section id={id} className="scroll-mt-28 mx-auto max-w-[1540px] px-4 py-8 sm:px-5 lg:px-14">
+    <section id={id} className="scroll-mt-28 mx-auto max-w-[1440px] px-4 py-8 sm:px-6">
       <div className="mb-6 flex items-end justify-between gap-4">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-tecnova-red">Catálogo Tecnova</p>
@@ -257,7 +257,7 @@ function HomeCatalog({
           Ver todo
         </Link>
       </div>
-      <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-[repeat(auto-fit,minmax(380px,1fr))]">
         {items.map((item) => (
           <ProductCard key={item.id} item={item} />
         ))}

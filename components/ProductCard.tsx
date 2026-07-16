@@ -4,9 +4,9 @@ import type { CatalogCard } from "@/lib/catalog-types";
 import { formatPrice } from "@/lib/format";
 import { addCompareItem, addQuoteItem } from "@/lib/quote-storage";
 import { GitCompare, MessageCircle, Plus, ShoppingCart } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import ProductImageComposite from "./ProductImageComposite";
 
 function itemHref(item: CatalogCard) {
   return item.tipo === "repuesto" ? `/repuestos/${item.slug}` : `/productos/${item.slug}`;
@@ -56,20 +56,27 @@ export default function ProductCard({
         view === "list" ? "grid gap-0 md:grid-cols-[260px_1fr]" : "flex h-full flex-col"
       }`}
     >
-      <Link href={href} className={`relative block overflow-hidden bg-neutral-100 ${view === "list" ? "min-h-[230px]" : "aspect-[4/3]"}`}>
-        <Image src={item.imagen} alt={item.nombre} fill sizes={view === "list" ? "260px" : "(max-width: 768px) 100vw, 33vw"} className="object-cover transition duration-700 group-hover:scale-105" />
+      <Link href={href} className={`relative block overflow-hidden bg-neutral-100 ${view === "list" ? "aspect-square min-h-[230px]" : "aspect-square"}`}>
+        <ProductImageComposite
+          productSrc={item.imagen}
+          backgroundImage={item.backgroundImage}
+          alt={item.nombre}
+          variant="card"
+          sizes={view === "list" ? "260px" : "(max-width: 768px) 100vw, 33vw"}
+          productClassName="group-hover:scale-105"
+        />
         <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.12em] text-tecnova-red backdrop-blur">
           {item.categoria}
         </span>
       </Link>
 
-      <div className="flex flex-1 flex-col p-3 sm:p-6">
+      <div className={`flex flex-1 flex-col ${view === "list" ? "p-3 sm:p-6" : "p-4 sm:p-5"}`}>
         <div className="flex items-start justify-between gap-3">
-          <div>
+          <div className="min-w-0">
             <p className="text-[11px] font-black uppercase tracking-[0.16em] text-tecnova-red">
               {item.marca || "Tecnova"} {item.modelo ? `· ${item.modelo}` : ""}
             </p>
-            <Link href={href} className="mt-2 block text-base font-black tracking-[-0.04em] transition hover:text-tecnova-red sm:text-2xl">
+            <Link href={href} className={`mt-2 block font-black tracking-[-0.04em] transition hover:text-tecnova-red ${view === "list" ? "text-base sm:text-2xl" : "line-clamp-2 text-lg leading-tight sm:text-xl"}`}>
               {item.nombre}
             </Link>
           </div>
@@ -78,7 +85,7 @@ export default function ProductCard({
           </span>
         </div>
 
-        <p className="mt-3 flex-1 text-xs font-semibold leading-5 text-tecnova-steel sm:text-sm sm:leading-6">{item.descripcionCorta}</p>
+        <p className={`mt-3 flex-1 text-xs font-semibold leading-5 text-tecnova-steel sm:text-sm ${view === "list" ? "sm:leading-6" : "line-clamp-2 sm:leading-5"}`}>{item.descripcionCorta}</p>
 
         {view === "list" && item.caracteristicas.length > 0 && (
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -90,7 +97,7 @@ export default function ProductCard({
           </div>
         )}
 
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+        <div className={`${view === "list" ? "mt-5" : "mt-4"} flex flex-wrap items-center justify-between gap-2 sm:gap-3`}>
           <p className="text-sm font-black sm:text-lg">{formatPrice(item.precio, item.mostrarPrecio, item.etiquetaPrecio)}</p>
           <div className="flex gap-2">
             <button
@@ -114,7 +121,7 @@ export default function ProductCard({
           </div>
         </div>
 
-        <Link href={href} className="mt-4 inline-flex items-center justify-center gap-2 rounded-2xl bg-tecnova-red px-4 py-3 text-sm font-black text-white transition hover:bg-red-700">
+        <Link href={href} className={`${view === "list" ? "mt-4 py-3" : "mt-3 py-2.5"} inline-flex items-center justify-center gap-2 rounded-2xl bg-tecnova-red px-4 text-sm font-black text-white transition hover:bg-red-700`}>
           Ver ficha <MessageCircle size={16} />
         </Link>
       </div>

@@ -15,6 +15,7 @@ export type CatalogCard = {
   mostrarPrecio: boolean;
   etiquetaPrecio: string | null;
   imagen: string;
+  backgroundImage: string | null;
   disponible: boolean;
   destacado: boolean;
   cotizaciones: number;
