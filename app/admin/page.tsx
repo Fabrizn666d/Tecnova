@@ -26,7 +26,7 @@ import {
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, PointerEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ProductImageComposite from "@/components/ProductImageComposite";
 
 type ResourceKey =
@@ -70,6 +70,7 @@ type BackgroundOption = {
   filename: string;
   url: string;
   label: string;
+  usageCount?: number;
 };
 
 type FieldConfig = {
@@ -133,6 +134,9 @@ const templates: Record<ResourceKey, Record<string, unknown>> = {
     etiquetaPrecio: "Consultar precio",
     imagenPrincipal: "",
     backgroundImage: "",
+    imageScale: 1,
+    imagePositionX: 50,
+    imagePositionY: 55,
     imagenes: "[]",
     videoUrl: "",
     mostrarVideo: false,
@@ -166,6 +170,9 @@ const templates: Record<ResourceKey, Record<string, unknown>> = {
     etiquetaPrecio: "Consultar precio",
     imagenPrincipal: "",
     backgroundImage: "",
+    imageScale: 1,
+    imagePositionX: 50,
+    imagePositionY: 55,
     imagenes: "[]",
     videoUrl: "",
     mostrarVideo: false,
@@ -684,6 +691,45 @@ export default function AdminPage() {
     }
   }
 
+  async function deleteBackground(background: BackgroundOption) {
+    const usageCount = Number(background.usageCount || 0);
+    if (!confirm(`Seguro que deseas eliminar el fondo "${background.label}"?`)) return;
+
+    setUploadingField(`delete-background:${background.filename}`);
+    setMessage("");
+    try {
+      let force = false;
+      while (true) {
+        const url = `/api/admin/fondos-producto?filename=${encodeURIComponent(background.filename)}${force ? "&force=true" : ""}`;
+        const response = await fetch(url, { method: "DELETE" });
+        const payload = await safeJson(response);
+        if (response.status === 401) {
+          setMessage("Tu sesiÃƒÂ³n expirÃƒÂ³. Inicia sesiÃƒÂ³n nuevamente.");
+          return;
+        }
+        if (!response.ok || !payload.ok) {
+          setMessage(payload.message || "No se pudo eliminar el fondo.");
+          return;
+        }
+        if (payload.data?.requiresForce) {
+          const currentUsage = Number(payload.data.usageCount || usageCount || 0);
+          if (!confirm(`Este fondo esta siendo usado por ${currentUsage} producto(s). Si continuas, esos productos quedaran sin fondo seleccionado.`)) return;
+          force = true;
+          continue;
+        }
+        break;
+      }
+      updateSelected((current) => (current.backgroundImage === background.filename ? { ...current, backgroundImage: "" } : current));
+      await loadBackgrounds();
+      setMessage("Fondo eliminado correctamente.");
+      showToast("Fondo eliminado correctamente.");
+    } catch {
+      setMessage("No se pudo eliminar el fondo.");
+    } finally {
+      setUploadingField("");
+    }
+  }
+
   function editItem(item: Record<string, unknown>) {
     if (!activeResource) return;
     setMessage("");
@@ -927,6 +973,7 @@ export default function AdminPage() {
                     onChange={(field, value) => updateSelected((current) => changeProductField(current, field, value))}
                     onUpload={upload}
                     onUploadBackground={uploadBackground}
+                    onDeleteBackground={deleteBackground}
                   />
                 ) : activeResource === "configuracion" ? (
                   <ConfigForm
@@ -1177,6 +1224,7 @@ function ProductForm({
   onChange,
   onUpload,
   onUploadBackground,
+  onDeleteBackground,
 }: {
   kind: "productos" | "repuestos";
   selected: Record<string, unknown>;
@@ -1189,6 +1237,7 @@ function ProductForm({
   onChange: (field: string, value: unknown) => void;
   onUpload: (event: ChangeEvent<HTMLInputElement>, field: string) => void;
   onUploadBackground: (event: ChangeEvent<HTMLInputElement>) => void;
+  onDeleteBackground: (background: BackgroundOption) => void;
 }) {
   return (
     <div className="space-y-4">
@@ -1220,9 +1269,15 @@ function ProductForm({
         selected={String(selected.backgroundImage || "")}
         productImage={String(uploadPreviews.imagenPrincipal || selected.imagenPrincipal || "")}
         productName={String(selected.nombre || "Producto")}
+        imageScale={numberValue(selected.imageScale, 1)}
+        imagePositionX={numberValue(selected.imagePositionX, 50)}
+        imagePositionY={numberValue(selected.imagePositionY, 55)}
         uploading={uploadingField === "backgroundImage"}
+        deletingFilename={uploadingField.startsWith("delete-background:") ? uploadingField.replace("delete-background:", "") : ""}
         onSelect={(filename) => onChange("backgroundImage", filename)}
+        onChange={onChange}
         onUpload={onUploadBackground}
+        onDelete={onDeleteBackground}
       />
       <TextField field="descripcionCorta" label="Descripción corta" tooltip="Resumen breve que aparece en tarjetas y ficha." value={selected.descripcionCorta} onChange={onChange} textarea required />
       <ToggleField field="disponible" label="Disponible" tooltip="Activa si puede cotizarse o entregarse actualmente." value={selected.disponible} onChange={onChange} />
@@ -1261,20 +1316,66 @@ function ProductBackgroundPicker({
   selected,
   productImage,
   productName,
+  imageScale,
+  imagePositionX,
+  imagePositionY,
   uploading,
+  deletingFilename,
   onSelect,
+  onChange,
   onUpload,
+  onDelete,
 }: {
   backgrounds: BackgroundOption[];
   selected: string;
   productImage: string;
   productName: string;
+  imageScale: number;
+  imagePositionX: number;
+  imagePositionY: number;
   uploading: boolean;
+  deletingFilename: string;
   onSelect: (filename: string) => void;
+  onChange: (field: string, value: unknown) => void;
   onUpload: (event: ChangeEvent<HTMLInputElement>) => void;
+  onDelete: (background: BackgroundOption) => void;
 }) {
   const inputId = "upload-background-product";
   const selectedBackground = backgrounds.find((background) => background.filename === selected);
+  const dragStart = useRef<{ pointerX: number; pointerY: number; imageX: number; imageY: number } | null>(null);
+
+  function setImageValue(field: string, value: number) {
+    const limits: Record<string, [number, number]> = {
+      imageScale: [0.4, 2.5],
+      imagePositionX: [0, 100],
+      imagePositionY: [0, 100],
+    };
+    const [min, max] = limits[field] || [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY];
+    onChange(field, clampNumber(value, min, max));
+  }
+
+  function onEditorPointerDown(event: PointerEvent<HTMLDivElement>) {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragStart.current = {
+      pointerX: event.clientX,
+      pointerY: event.clientY,
+      imageX: imagePositionX,
+      imageY: imagePositionY,
+    };
+  }
+
+  function onEditorPointerMove(event: PointerEvent<HTMLDivElement>) {
+    if (!dragStart.current) return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const deltaX = ((event.clientX - dragStart.current.pointerX) / bounds.width) * 100;
+    const deltaY = ((event.clientY - dragStart.current.pointerY) / bounds.height) * 100;
+    setImageValue("imagePositionX", dragStart.current.imageX + deltaX);
+    setImageValue("imagePositionY", dragStart.current.imageY + deltaY);
+  }
+
+  function stopDrag() {
+    dragStart.current = null;
+  }
 
   return (
     <section className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
@@ -1293,19 +1394,33 @@ function ProductBackgroundPicker({
         {backgrounds.map((background) => {
           const active = background.filename === selected;
           return (
-            <button
+            <div
               key={background.filename}
-              type="button"
-              onClick={() => onSelect(background.filename)}
               className={`overflow-hidden rounded-lg border bg-white text-left transition ${active ? "border-tecnova-red ring-2 ring-tecnova-red" : "border-neutral-200 hover:border-neutral-400"}`}
               title={background.filename}
             >
-              <span className="relative block aspect-square">
-                {/* eslint-disable-next-line @next/next/no-img-element -- Admin previews read dynamic files from public/Imagess. */}
-                <img src={background.url} alt={background.label} className="h-full w-full object-cover object-center" />
-              </span>
-              <span className="block truncate px-3 py-2 text-xs font-black">{background.label}</span>
-            </button>
+              <button type="button" onClick={() => onSelect(background.filename)} className="block w-full text-left">
+                <span className="relative block aspect-square">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- Admin previews read dynamic files from public/Imagess. */}
+                  <img src={background.url} alt={background.label} className="h-full w-full object-cover object-center" />
+                </span>
+              </button>
+              <div className="flex items-center justify-between gap-2 px-3 py-2">
+                <button type="button" onClick={() => onSelect(background.filename)} className="min-w-0 truncate text-left text-xs font-black">
+                  {background.label}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onDelete(background)}
+                  className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-red-50 hover:text-tecnova-red"
+                  aria-label={`Eliminar ${background.label}`}
+                  title={background.usageCount ? `${background.usageCount} producto(s) lo usan` : "Eliminar fondo"}
+                  disabled={deletingFilename === background.filename}
+                >
+                  {deletingFilename === background.filename ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                </button>
+              </div>
+            </div>
           );
         })}
         {backgrounds.length === 0 && (
@@ -1316,12 +1431,32 @@ function ProductBackgroundPicker({
       </div>
 
       <div className="mt-4">
-        <p className="text-xs font-black uppercase tracking-[0.14em] text-neutral-500">Vista previa</p>
-        <div className="relative mt-2 aspect-square overflow-hidden rounded-lg border border-neutral-200">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-black uppercase tracking-[0.14em] text-neutral-500">Editor visual</p>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => { onChange("imagePositionX", 50); onChange("imagePositionY", 55); }} className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-black hover:border-tecnova-red hover:text-tecnova-red">Centrar</button>
+            <button type="button" onClick={() => { onChange("imageScale", 0.9); onChange("imagePositionX", 50); onChange("imagePositionY", 55); }} className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-black hover:border-tecnova-red hover:text-tecnova-red">Ajustar</button>
+            <button type="button" onClick={() => { onChange("imageScale", 1); onChange("imagePositionX", 50); onChange("imagePositionY", 55); }} className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-black hover:border-tecnova-red hover:text-tecnova-red">Restablecer</button>
+          </div>
+        </div>
+        <div
+          className="relative mt-2 aspect-square cursor-grab touch-none overflow-hidden rounded-lg border border-neutral-200 active:cursor-grabbing"
+          onWheel={(event) => {
+            event.preventDefault();
+            setImageValue("imageScale", imageScale + (event.deltaY < 0 ? 0.04 : -0.04));
+          }}
+          onPointerDown={onEditorPointerDown}
+          onPointerMove={onEditorPointerMove}
+          onPointerUp={stopDrag}
+          onPointerCancel={stopDrag}
+        >
           {productImage ? (
             <ProductImageComposite
               productSrc={productImage}
               backgroundImage={selectedBackground?.filename}
+              imageScale={imageScale}
+              imagePositionX={imagePositionX}
+              imagePositionY={imagePositionY}
               alt={productName}
               variant="admin-preview"
               sizes="420px"
@@ -1332,8 +1467,37 @@ function ProductBackgroundPicker({
             </div>
           )}
         </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <RangeControl label="Escala" value={imageScale} min={0.4} max={2.5} step={0.01} onChange={(value) => setImageValue("imageScale", value)} />
+          <RangeControl label="Posicion X" value={imagePositionX} min={0} max={100} step={0.1} onChange={(value) => setImageValue("imagePositionX", value)} />
+          <RangeControl label="Posicion Y" value={imagePositionY} min={0} max={100} step={0.1} onChange={(value) => setImageValue("imagePositionY", value)} />
+        </div>
       </div>
     </section>
+  );
+}
+
+function RangeControl({
+  label,
+  value,
+  min,
+  max,
+  step,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <label className="block text-xs font-black uppercase tracking-[0.1em] text-neutral-500">
+      {label}
+      <input type="range" min={min} max={max} step={step} value={value} onChange={(event) => onChange(Number(event.target.value))} className="mt-2 w-full accent-tecnova-red" />
+      <input type="number" min={min} max={max} step={step} value={Number(value.toFixed(2))} onChange={(event) => onChange(Number(event.target.value))} className="mt-2 h-10 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm font-bold outline-none focus:border-tecnova-red" />
+    </label>
   );
 }
 
@@ -1898,7 +2062,13 @@ function normalizeSelected(resource: ResourceKey, item: Record<string, unknown>)
     return { ...base, password: "", rol: String(base.rol || "ADMIN").toUpperCase() };
   }
   if (resource === "productos" || resource === "repuestos") {
-    return { ...base, moneda: getCurrency(base) };
+    return {
+      ...base,
+      moneda: getCurrency(base),
+      imageScale: numberValue(base.imageScale, 1),
+      imagePositionX: numberValue(base.imagePositionX, 50),
+      imagePositionY: numberValue(base.imagePositionY, 55),
+    };
   }
   return base;
 }
@@ -1932,6 +2102,9 @@ function preparePayload(resource: ResourceKey, selected: Record<string, unknown>
       slug: String(selected.slug || slugifyText(String(selected.nombre || ""))),
       mostrarPrecio: hasPrice,
       etiquetaPrecio: hasPrice ? getCurrency(selected) : "Consultar precio",
+      imageScale: numberValue(selected.imageScale, 1),
+      imagePositionX: numberValue(selected.imagePositionX, 50),
+      imagePositionY: numberValue(selected.imagePositionY, 55),
       imagenes: normalizeImageList(selected.imagenes, image),
       tags: normalizeStringArray(selected.tags),
       caracteristicas: normalizeStringArray(selected.caracteristicas),
@@ -1942,6 +2115,16 @@ function preparePayload(resource: ResourceKey, selected: Record<string, unknown>
   }
 
   return selected;
+}
+
+function numberValue(value: unknown, fallback: number) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function clampNumber(value: number, min: number, max: number) {
+  if (!Number.isFinite(value)) return min;
+  return Math.min(Math.max(value, min), max);
 }
 
 function settingsRowsToForm(rows: Record<string, unknown>[]) {

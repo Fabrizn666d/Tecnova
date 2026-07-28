@@ -67,6 +67,12 @@ export function toFloat(value: unknown) {
   return Number.isFinite(number) ? number : null;
 }
 
+function toClampedFloat(value: unknown, fallback: number | null, min: number, max: number) {
+  const number = toFloat(value);
+  if (number == null) return fallback;
+  return Math.min(Math.max(number, min), max);
+}
+
 export function buildResourceData(resource: ResourceName, input: RecordData) {
   switch (resource) {
     case "categorias":
@@ -102,6 +108,9 @@ export function buildResourceData(resource: ResourceName, input: RecordData) {
         imagenes: cleanPublicAssetJsonArray(input.imagenes),
         imagenPrincipal: cleanPublicAssetPath(input.imagenPrincipal),
         backgroundImage: cleanPublicFilename(input.backgroundImage),
+        imageScale: toClampedFloat(input.imageScale, null, 0.4, 2.5),
+        imagePositionX: toClampedFloat(input.imagePositionX, null, 0, 100),
+        imagePositionY: toClampedFloat(input.imagePositionY, null, 0, 100),
         videoUrl: cleanOptionalText(input.videoUrl, 500),
         mostrarVideo: toBool(input.mostrarVideo),
         especificaciones: safeJson(input.especificaciones),

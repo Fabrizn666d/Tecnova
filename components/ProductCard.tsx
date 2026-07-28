@@ -60,10 +60,13 @@ export default function ProductCard({
         <ProductImageComposite
           productSrc={item.imagen}
           backgroundImage={item.backgroundImage}
+          imageScale={item.imageScale}
+          imagePositionX={item.imagePositionX}
+          imagePositionY={item.imagePositionY}
           alt={item.nombre}
           variant="card"
           sizes={view === "list" ? "260px" : "(max-width: 768px) 100vw, 33vw"}
-          productClassName="group-hover:scale-105"
+          enableHoverZoom
         />
         <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.12em] text-tecnova-red backdrop-blur">
           {item.categoria}

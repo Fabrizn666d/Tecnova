@@ -4,7 +4,7 @@ import type { Prisma } from "@prisma/client";
 import { existsSync } from "fs";
 import path from "path";
 import { productBackgroundPublicFolder } from "@/lib/image-paths";
-import { getProductBackgroundImage, productSelectWithOptionalBackground } from "@/lib/product-db";
+import { getProductBackgroundImage, getProductImageConfig, productSelectWithOptionalBackground } from "@/lib/product-db";
 
 export type CatalogItem = Prisma.ProductGetPayload<{ select: Awaited<ReturnType<typeof productSelectWithOptionalBackground>> }>;
 
@@ -53,6 +53,7 @@ export function productHref(product: Pick<CatalogItem, "tipo" | "slug">) {
 }
 
 export function toCatalogCard(product: CatalogItem): CatalogCard {
+  const imageConfig = getProductImageConfig(product);
   return {
     id: product.id,
     tipo: product.tipo === "repuesto" ? "repuesto" : "producto",
@@ -69,6 +70,7 @@ export function toCatalogCard(product: CatalogItem): CatalogCard {
     etiquetaPrecio: product.etiquetaPrecio,
     imagen: productImage(product),
     backgroundImage: getProductBackgroundImage(product),
+    ...imageConfig,
     disponible: product.disponible,
     destacado: product.tipo === "repuesto" ? product.destacadoRepuesto : product.destacado,
     cotizaciones: product.cotizaciones,

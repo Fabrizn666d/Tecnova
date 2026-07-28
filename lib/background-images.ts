@@ -1,6 +1,8 @@
 import { randomUUID } from "crypto";
-import { mkdir, readdir, writeFile } from "fs/promises";
+import { mkdir, readdir, unlink, writeFile } from "fs/promises";
 import path from "path";
+import { prisma } from "@/lib/prisma";
+import { hasProductBackgroundImageColumn } from "@/lib/product-db";
 
 export const backgroundFolderName = "Imagess";
 
@@ -19,7 +21,7 @@ export function isAllowedBackgroundFilename(filename: string) {
 export async function listBackgroundImages() {
   await mkdir(getBackgroundDir(), { recursive: true });
   const entries = await readdir(getBackgroundDir(), { withFileTypes: true });
-  return entries
+  const backgrounds = entries
     .filter((entry) => entry.isFile() && isAllowedBackgroundFilename(entry.name))
     .map((entry) => ({
       filename: entry.name,
@@ -27,6 +29,17 @@ export async function listBackgroundImages() {
       label: filenameToLabel(entry.name),
     }))
     .sort((a, b) => a.label.localeCompare(b.label, "es"));
+  if (!(await hasProductBackgroundImageColumn())) {
+    return backgrounds.map((background) => ({ ...background, usageCount: 0 }));
+  }
+  const usageRows = await Promise.all(
+    backgrounds.map(async (background) => ({
+      filename: background.filename,
+      usageCount: await prisma.product.count({ where: { backgroundImage: background.filename } }),
+    }))
+  );
+  const usage = new Map(usageRows.map((row) => [row.filename, row.usageCount]));
+  return backgrounds.map((background) => ({ ...background, usageCount: usage.get(background.filename) || 0 }));
 }
 
 export async function saveBackgroundImage(file: File) {
@@ -62,6 +75,34 @@ export async function saveBackgroundImage(file: File) {
     url: `/${backgroundFolderName}/${filename}`,
     label: filenameToLabel(filename),
   };
+}
+
+export async function deleteBackgroundImage(filename: string, force = false) {
+  if (!isAllowedBackgroundFilename(filename)) {
+    throw new Error("Nombre de fondo no permitido.");
+  }
+
+  const backgroundDir = path.normalize(getBackgroundDir());
+  const fullPath = path.normalize(path.join(backgroundDir, path.basename(filename)));
+  if (!fullPath.startsWith(`${backgroundDir}${path.sep}`)) {
+    throw new Error("Ruta de fondo no permitida.");
+  }
+
+  const hasBackgroundColumn = await hasProductBackgroundImageColumn();
+  const usageCount = hasBackgroundColumn ? await prisma.product.count({ where: { backgroundImage: filename } }) : 0;
+  if (usageCount > 0 && !force) {
+    return { deleted: false, usageCount, requiresForce: true };
+  }
+
+  try {
+    await unlink(fullPath);
+  } catch {
+    throw new Error("No se pudo eliminar el archivo del fondo.");
+  }
+  if (usageCount > 0 && hasBackgroundColumn) {
+    await prisma.product.updateMany({ where: { backgroundImage: filename }, data: { backgroundImage: null } });
+  }
+  return { deleted: true, usageCount, requiresForce: false };
 }
 
 function getMaxBackgroundSize() {

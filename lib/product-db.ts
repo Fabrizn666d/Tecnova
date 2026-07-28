@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 
 let backgroundColumnPromise: Promise<boolean> | null = null;
+let productColumnsPromise: Promise<Set<string>> | null = null;
 
 export const productBaseSelect = {
   id: true,
@@ -47,23 +48,25 @@ export const productBaseSelect = {
 } as const;
 
 export async function hasProductBackgroundImageColumn() {
-  backgroundColumnPromise ??= prisma
-    .$queryRaw<Array<{ name: string }>>`PRAGMA table_info("Product")`
-    .then((columns) => columns.some((column) => column.name === "backgroundImage"))
-    .catch(() => false);
+  backgroundColumnPromise ??= hasProductColumn("backgroundImage");
   return backgroundColumnPromise;
 }
 
 export async function productSelectWithOptionalBackground() {
+  const columns = await getProductColumns();
   return {
     ...productBaseSelect,
-    ...((await hasProductBackgroundImageColumn()) ? { backgroundImage: true } : {}),
+    ...(columns.has("backgroundImage") ? { backgroundImage: true } : {}),
+    ...(columns.has("imageScale") ? { imageScale: true } : {}),
+    ...(columns.has("imagePositionX") ? { imagePositionX: true } : {}),
+    ...(columns.has("imagePositionY") ? { imagePositionY: true } : {}),
   };
 }
 
 export async function stripUnsupportedProductFields<T extends Record<string, unknown>>(data: T) {
-  if (!(await hasProductBackgroundImageColumn())) {
-    delete data.backgroundImage;
+  const columns = await getProductColumns();
+  for (const field of ["backgroundImage", "imageScale", "imagePositionX", "imagePositionY"]) {
+    if (!columns.has(field)) delete data[field];
   }
   return data;
 }
@@ -72,4 +75,33 @@ export function getProductBackgroundImage(product: unknown) {
   if (typeof product !== "object" || !product || !("backgroundImage" in product)) return null;
   const value = (product as { backgroundImage?: unknown }).backgroundImage;
   return typeof value === "string" && value ? value : null;
+}
+
+export function getProductImageConfig(product: unknown) {
+  if (typeof product !== "object" || !product) {
+    return { imageScale: null, imagePositionX: null, imagePositionY: null };
+  }
+  const record = product as Record<string, unknown>;
+  return {
+    imageScale: finiteOrNull(record.imageScale),
+    imagePositionX: finiteOrNull(record.imagePositionX),
+    imagePositionY: finiteOrNull(record.imagePositionY),
+  };
+}
+
+async function getProductColumns() {
+  productColumnsPromise ??= prisma
+    .$queryRaw<Array<{ name: string }>>`PRAGMA table_info("Product")`
+    .then((columns) => new Set(columns.map((column) => column.name)))
+    .catch(() => new Set<string>());
+  return productColumnsPromise;
+}
+
+async function hasProductColumn(column: string) {
+  return (await getProductColumns()).has(column);
+}
+
+function finiteOrNull(value: unknown) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
 }

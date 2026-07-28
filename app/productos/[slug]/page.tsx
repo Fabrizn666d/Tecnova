@@ -5,7 +5,7 @@ import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import { formatPrice } from "@/lib/format";
 import { parseJsonArray, productImage, safeImagePath, toCatalogCard, type SpecItem } from "@/lib/catalog";
-import { getProductBackgroundImage, productSelectWithOptionalBackground } from "@/lib/product-db";
+import { getProductBackgroundImage, getProductImageConfig, productSelectWithOptionalBackground } from "@/lib/product-db";
 import { prisma } from "@/lib/prisma";
 import { getSettingsMap } from "@/lib/settings";
 import { ExternalLink } from "lucide-react";
@@ -74,12 +74,13 @@ function ProductDetail({ product, related, whatsapp }: { product: ProductWithCat
   const applications = parseJsonArray<string>(product.aplicaciones);
   const card = toCatalogCard(product);
   const jsonLd = buildProductJsonLd(product, uniqueImages[0]);
+  const imageConfig = getProductImageConfig(product);
 
   return (
     <section className="mx-auto max-w-[1540px] px-4 py-8 sm:px-5 lg:px-14">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <div className="grid gap-7 lg:grid-cols-[1.05fr_0.95fr]">
-        <ProductGallery images={uniqueImages} alt={product.nombre} backgroundImage={getProductBackgroundImage(product)} />
+        <ProductGallery images={uniqueImages} alt={product.nombre} backgroundImage={getProductBackgroundImage(product)} {...imageConfig} />
 
         <aside className="rounded-[30px] bg-white p-6 shadow-soft ring-1 ring-black/5 sm:p-8 lg:sticky lg:top-24 lg:self-start">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-tecnova-red">{product.category.nombre}</p>

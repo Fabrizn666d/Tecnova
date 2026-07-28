@@ -43,6 +43,9 @@ model Product {
   imagenes          String      @default("[]")
   imagenPrincipal   String?
   backgroundImage   String?
+  imageScale        Float?
+  imagePositionX    Float?
+  imagePositionY    Float?
   videoUrl          String?
   mostrarVideo      Boolean     @default(false)
   especificaciones  String      @default("[]")

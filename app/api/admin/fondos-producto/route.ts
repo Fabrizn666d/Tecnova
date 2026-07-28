@@ -1,5 +1,5 @@
 import { requireAdmin } from "@/lib/auth";
-import { listBackgroundImages, saveBackgroundImage } from "@/lib/background-images";
+import { deleteBackgroundImage, listBackgroundImages, saveBackgroundImage } from "@/lib/background-images";
 import { fail, ok } from "@/lib/http";
 import type { NextRequest } from "next/server";
 
@@ -31,5 +31,19 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error) {
     return fail(error instanceof Error ? error.message : "No se pudo subir el fondo.");
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    await requireAdmin();
+    const filename = request.nextUrl.searchParams.get("filename") || "";
+    const force = request.nextUrl.searchParams.get("force") === "true";
+    const result = await deleteBackgroundImage(filename, force);
+    const response = ok(result);
+    response.headers.set("Cache-Control", "no-store");
+    return response;
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : "No se pudo eliminar el fondo.");
   }
 }
