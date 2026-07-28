@@ -26,5 +26,5 @@ server {
         add_header Cache-Control "public, immutable";
     }
 
-    client_max_body_size 15M;
+    client_max_body_size 20M;
 }

@@ -360,6 +360,8 @@ export default function AdminPage() {
   const [uploadingField, setUploadingField] = useState("");
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [uploadPreviews, setUploadPreviews] = useState<Record<string, string>>({});
+  const [backgroundFile, setBackgroundFile] = useState<File | null>(null);
+  const [backgroundInputKey, setBackgroundInputKey] = useState(0);
   const [categories, setCategories] = useState<Record<string, unknown>[]>([]);
   const [backgrounds, setBackgrounds] = useState<BackgroundOption[]>([]);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -402,7 +404,7 @@ export default function AdminPage() {
     try {
       const response = await fetch("/api/admin/fondos-producto", { cache: "no-store" });
       const payload = await safeJson(response);
-      if (response.ok && payload.ok) setBackgrounds(payload.data?.backgrounds || []);
+      if (response.ok && payload.ok) setBackgrounds(payload.data?.backgrounds || payload.data?.items || []);
     } catch {
       setBackgrounds([]);
     }
@@ -684,21 +686,34 @@ export default function AdminPage() {
     }
   }
 
-  async function uploadBackground(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.currentTarget.files?.[0];
-    event.currentTarget.value = "";
-    if (!file) return;
-    const allowedExtensions = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif", ".svg"];
-    if (!allowedExtensions.some((extension) => file.name.toLowerCase().endsWith(extension))) {
-      setMessage("Formato no permitido. Usa JPG, JPEG, PNG, WebP, GIF, AVIF o SVG.");
+  function selectBackgroundFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+    setBackgroundFile(file);
+    if (file) {
+      console.info("[fondos-producto] archivo seleccionado", { name: file.name, type: file.type, size: file.size });
+    }
+  }
+
+  async function uploadBackground() {
+    if (!(backgroundFile instanceof File)) {
+      setMessage("Selecciona una imagen valida.");
       return;
     }
-    if (file.size === 0) {
-      setMessage("El archivo de fondo esta vacio.");
+    const allowedExtensions = [".jpg", ".jpeg", ".png", ".webp"];
+    if (!allowedExtensions.some((extension) => backgroundFile.name.toLowerCase().endsWith(extension))) {
+      setMessage("Formato no permitido. Usa JPG, JPEG, PNG o WebP.");
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      setMessage("El fondo no debe superar 10MB.");
+    if (!["image/jpeg", "image/png", "image/webp"].includes(backgroundFile.type.toLowerCase())) {
+      setMessage("Tipo de imagen no permitido. Usa JPG, PNG o WebP.");
+      return;
+    }
+    if (backgroundFile.size <= 0) {
+      setMessage("La imagen seleccionada esta vacia.");
+      return;
+    }
+    if (backgroundFile.size > 15 * 1024 * 1024) {
+      setMessage("El fondo no debe superar 15MB.");
       return;
     }
 
@@ -706,8 +721,19 @@ export default function AdminPage() {
     setMessage("");
     try {
       const form = new FormData();
-      form.set("file", file);
-      const response = await fetch("/api/admin/fondos-producto", { method: "POST", body: form });
+      form.append("file", backgroundFile, backgroundFile.name);
+      console.info("[fondos-producto] formdata listo", {
+        hasFile: form.get("file") instanceof File,
+        name: backgroundFile.name,
+        type: backgroundFile.type,
+        size: backgroundFile.size,
+      });
+      const response = await fetch("/api/admin/fondos-producto", {
+        method: "POST",
+        body: form,
+        credentials: "include",
+        cache: "no-store",
+      });
       const payload = await safeJson(response);
       if (response.status === 401) {
         setMessage("Tu sesiÃ³n expirÃ³. Inicia sesiÃ³n nuevamente.");
@@ -717,14 +743,17 @@ export default function AdminPage() {
         setMessage(payload.message || "No se pudo subir el fondo.");
         return;
       }
-      const background = payload.data?.background as BackgroundOption;
+      const background = (payload.data?.background || payload.data?.item || payload.data) as BackgroundOption;
       if (!background?.filename) {
         setMessage("El servidor no devolvio el fondo subido.");
         return;
       }
       await loadBackgrounds();
       updateSelected((current) => ({ ...current, backgroundImage: background.filename }));
+      setBackgroundFile(null);
+      setBackgroundInputKey((value) => value + 1);
       setMessage("Fondo subido y seleccionado. Recuerda guardar los cambios.");
+      showToast("Fondo subido correctamente.");
     } catch {
       setMessage("No se pudo subir el fondo.");
     } finally {
@@ -1050,9 +1079,12 @@ export default function AdminPage() {
                     uploadPreviews={uploadPreviews}
                     uploadingField={uploadingField}
                     backgrounds={backgrounds}
+                    backgroundFile={backgroundFile}
+                    backgroundInputKey={backgroundInputKey}
                     onToggleAdvanced={() => setAdvancedOpen((value) => !value)}
                     onChange={(field, value) => updateSelected((current) => changeProductField(current, field, value))}
                     onUpload={upload}
+                    onSelectBackgroundFile={selectBackgroundFile}
                     onUploadBackground={uploadBackground}
                     onDeleteBackground={deleteBackground}
                   />
@@ -1301,9 +1333,12 @@ function ProductForm({
   uploadPreviews,
   uploadingField,
   backgrounds,
+  backgroundFile,
+  backgroundInputKey,
   onToggleAdvanced,
   onChange,
   onUpload,
+  onSelectBackgroundFile,
   onUploadBackground,
   onDeleteBackground,
 }: {
@@ -1314,10 +1349,13 @@ function ProductForm({
   uploadPreviews: Record<string, string>;
   uploadingField: string;
   backgrounds: BackgroundOption[];
+  backgroundFile: File | null;
+  backgroundInputKey: number;
   onToggleAdvanced: () => void;
   onChange: (field: string, value: unknown) => void;
   onUpload: (event: ChangeEvent<HTMLInputElement>, field: string) => void;
-  onUploadBackground: (event: ChangeEvent<HTMLInputElement>) => void;
+  onSelectBackgroundFile: (event: ChangeEvent<HTMLInputElement>) => void;
+  onUploadBackground: () => void;
   onDeleteBackground: (background: BackgroundOption) => void;
 }) {
   return (
@@ -1347,6 +1385,8 @@ function ProductForm({
       <UploadField field="imagenPrincipal" label="Imagen principal" tooltip="Foto principal del producto o repuesto." value={selected.imagenPrincipal} preview={uploadPreviews.imagenPrincipal} uploading={uploadingField === "imagenPrincipal"} onUpload={onUpload} />
       <ProductBackgroundPicker
         backgrounds={backgrounds}
+        backgroundFile={backgroundFile}
+        backgroundInputKey={backgroundInputKey}
         selected={String(selected.backgroundImage || "")}
         productImage={String(uploadPreviews.imagenPrincipal || selected.imagenPrincipal || "")}
         productName={String(selected.nombre || "Producto")}
@@ -1357,6 +1397,7 @@ function ProductForm({
         deletingFilename={uploadingField.startsWith("delete-background:") ? uploadingField.replace("delete-background:", "") : ""}
         onSelect={(filename) => onChange("backgroundImage", filename)}
         onChange={onChange}
+        onSelectFile={onSelectBackgroundFile}
         onUpload={onUploadBackground}
         onDelete={onDeleteBackground}
       />
@@ -1394,6 +1435,8 @@ function ProductForm({
 
 function ProductBackgroundPicker({
   backgrounds,
+  backgroundFile,
+  backgroundInputKey,
   selected,
   productImage,
   productName,
@@ -1404,10 +1447,13 @@ function ProductBackgroundPicker({
   deletingFilename,
   onSelect,
   onChange,
+  onSelectFile,
   onUpload,
   onDelete,
 }: {
   backgrounds: BackgroundOption[];
+  backgroundFile: File | null;
+  backgroundInputKey: number;
   selected: string;
   productImage: string;
   productName: string;
@@ -1418,7 +1464,8 @@ function ProductBackgroundPicker({
   deletingFilename: string;
   onSelect: (filename: string) => void;
   onChange: (field: string, value: unknown) => void;
-  onUpload: (event: ChangeEvent<HTMLInputElement>) => void;
+  onSelectFile: (event: ChangeEvent<HTMLInputElement>) => void;
+  onUpload: () => void;
   onDelete: (background: BackgroundOption) => void;
 }) {
   const inputId = "upload-background-product";
@@ -1465,10 +1512,31 @@ function ProductBackgroundPicker({
           <FieldLabel label="Fondo del producto" tooltip="Selecciona el ambiente visual del producto. Se guarda solo el nombre del archivo." />
           <p className="mt-1 text-xs font-semibold text-neutral-500">Los archivos se leen automaticamente desde public/Imagess.</p>
         </div>
-        <label htmlFor={inputId} aria-disabled={uploading} className={`inline-flex h-10 items-center gap-2 rounded-lg bg-neutral-900 px-3 text-xs font-black text-white transition hover:bg-black ${uploading ? "pointer-events-none opacity-70" : "cursor-pointer"}`}>
-          {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} Subir nuevo fondo
+        <label htmlFor={inputId} aria-disabled={uploading} className={`inline-flex h-10 items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 text-xs font-black text-neutral-900 transition hover:border-tecnova-red hover:text-tecnova-red ${uploading ? "pointer-events-none opacity-70" : "cursor-pointer"}`}>
+          Seleccionar imagen
         </label>
-        <input id={inputId} type="file" accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.avif,.svg" onChange={onUpload} disabled={uploading} className="sr-only" />
+        <input key={backgroundInputKey} id={inputId} type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" onChange={onSelectFile} disabled={uploading} className="sr-only" />
+      </div>
+
+      <div className="mt-3 rounded-lg border border-dashed border-neutral-300 bg-white p-3">
+        {backgroundFile ? (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-black">{backgroundFile.name}</p>
+              <p className="mt-1 text-xs font-bold text-neutral-500">{backgroundFile.type || "sin tipo"} · {formatBytes(backgroundFile.size)}</p>
+            </div>
+            <button
+              type="button"
+              onClick={onUpload}
+              disabled={uploading}
+              className="inline-flex h-10 items-center gap-2 rounded-lg bg-neutral-900 px-4 text-xs font-black text-white transition hover:bg-black disabled:opacity-60"
+            >
+              {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} Subir fondo
+            </button>
+          </div>
+        ) : (
+          <p className="text-xs font-bold text-neutral-500">Selecciona un JPG, PNG o WebP para habilitar la subida.</p>
+        )}
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">

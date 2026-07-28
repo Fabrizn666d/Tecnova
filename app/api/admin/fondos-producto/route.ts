@@ -1,6 +1,6 @@
 import { requireAdmin } from "@/lib/auth";
 import { deleteBackgroundImage, listBackgroundImages, saveBackgroundImage } from "@/lib/background-images";
-import { fail, ok } from "@/lib/http";
+import { fail } from "@/lib/http";
 import type { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
@@ -11,7 +11,7 @@ export async function GET() {
   try {
     await requireAdmin();
     const backgrounds = await listBackgroundImages();
-    const response = ok({ backgrounds });
+    const response = Response.json({ ok: true, data: { backgrounds, items: backgrounds }, backgrounds, items: backgrounds });
     response.headers.set("Cache-Control", "no-store");
     return response;
   } catch (error) {
@@ -25,14 +25,26 @@ export async function POST(request: NextRequest) {
     await requireAdmin();
     const form = await request.formData();
     const file = form.get("file");
-    if (!(file instanceof File)) return fail("Archivo no recibido.");
+    if (!(file instanceof File)) return fail("No se recibio una imagen valida.");
+    if (file.size <= 0) return fail("La imagen recibida esta vacia.");
     console.info("[fondos-producto] archivo recibido", {
       name: file.name || "sin-nombre",
+      type: file.type || "sin-mime",
       size: file.size,
-      mime: file.type || "sin-mime",
+      cwd: process.cwd(),
     });
     const background = await saveBackgroundImage(file);
-    const response = ok({ background }, { status: 201 });
+    const response = Response.json(
+      {
+        ok: true,
+        data: { background, item: background, name: background.name, url: background.url },
+        background,
+        item: background,
+        name: background.name,
+        url: background.url,
+      },
+      { status: 201 }
+    );
     response.headers.set("Cache-Control", "no-store");
     return response;
   } catch (error) {
@@ -47,7 +59,7 @@ export async function DELETE(request: NextRequest) {
     const filename = request.nextUrl.searchParams.get("filename") || "";
     const force = request.nextUrl.searchParams.get("force") === "true";
     const result = await deleteBackgroundImage(filename, force);
-    const response = ok(result);
+    const response = Response.json({ ok: true, data: result, ...result });
     response.headers.set("Cache-Control", "no-store");
     return response;
   } catch (error) {
