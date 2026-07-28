@@ -50,6 +50,8 @@ type PanelKey = "dashboard" | "backups" | ResourceKey;
 type ApiList = {
   items: Record<string, unknown>[];
   total: number;
+  pagina?: number;
+  limite?: number;
 };
 
 type AdminProfile = {
@@ -345,6 +347,8 @@ export default function AdminPage() {
   const [active, setActive] = useState<PanelKey>("dashboard");
   const [items, setItems] = useState<Record<string, unknown>[]>([]);
   const [total, setTotal] = useState(0);
+  const [pagina, setPagina] = useState(1);
+  const [limite, setLimite] = useState(24);
   const [summary, setSummary] = useState<Record<string, unknown>>({});
   const [selected, setSelected] = useState<Record<string, unknown>>({});
   const selectedRef = useRef<Record<string, unknown>>({});
@@ -367,6 +371,9 @@ export default function AdminPage() {
   );
   const activeResource = active === "dashboard" || active === "backups" ? null : active;
   const fields = useMemo(() => (activeResource ? Object.keys(templates[activeResource]) : []), [activeResource]);
+  const totalPages = Math.max(Math.ceil(total / limite), 1);
+  const shownFrom = total === 0 ? 0 : (pagina - 1) * limite + 1;
+  const shownTo = total === 0 ? 0 : Math.min((pagina - 1) * limite + items.length, total);
 
   const updateSelected = useCallback((next: Record<string, unknown> | ((current: Record<string, unknown>) => Record<string, unknown>)) => {
     setSelected((current) => {
@@ -433,7 +440,12 @@ export default function AdminPage() {
     setLoading(true);
     setMessage("");
     try {
-      const response = await fetch(`/api/admin/${active}${query ? `?q=${encodeURIComponent(query)}` : ""}`);
+      const params = new URLSearchParams({
+        pagina: String(pagina),
+        limite: String(limite),
+      });
+      if (query.trim()) params.set("q", query.trim());
+      const response = await fetch(`/api/admin/${active}?${params.toString()}`);
       if (response.status === 401) {
         router.push("/admin/login");
         return;
@@ -449,6 +461,14 @@ export default function AdminPage() {
       const data = payload.data as ApiList;
       setItems(data?.items || []);
       setTotal(data?.total || 0);
+      const nextTotalPages = Math.max(Math.ceil((data?.total || 0) / (data?.limite || limite)), 1);
+      const responsePage = data?.pagina || pagina;
+      if (responsePage > nextTotalPages) {
+        setPagina(nextTotalPages);
+      } else if (data?.pagina) {
+        setPagina(data.pagina);
+      }
+      if (data?.limite) setLimite(data.limite);
       updateSelected(active === "configuracion" ? settingsRowsToForm(data?.items || []) : newTemplate(active));
       setAdvancedOpen(false);
     } catch {
@@ -458,7 +478,11 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
-  }, [active, query, refreshSummary, router, updateSelected]);
+  }, [active, limite, pagina, query, refreshSummary, router, updateSelected]);
+
+  useEffect(() => {
+    setPagina(1);
+  }, [active, query]);
 
   useEffect(() => {
     let ignore = false;
@@ -664,6 +688,19 @@ export default function AdminPage() {
     const file = event.currentTarget.files?.[0];
     event.currentTarget.value = "";
     if (!file) return;
+    const allowedExtensions = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif", ".svg"];
+    if (!allowedExtensions.some((extension) => file.name.toLowerCase().endsWith(extension))) {
+      setMessage("Formato no permitido. Usa JPG, JPEG, PNG, WebP, GIF, AVIF o SVG.");
+      return;
+    }
+    if (file.size === 0) {
+      setMessage("El archivo de fondo esta vacio.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setMessage("El fondo no debe superar 10MB.");
+      return;
+    }
 
     setUploadingField("backgroundImage");
     setMessage("");
@@ -681,6 +718,10 @@ export default function AdminPage() {
         return;
       }
       const background = payload.data?.background as BackgroundOption;
+      if (!background?.filename) {
+        setMessage("El servidor no devolvio el fondo subido.");
+        return;
+      }
       await loadBackgrounds();
       updateSelected((current) => ({ ...current, backgroundImage: background.filename }));
       setMessage("Fondo subido y seleccionado. Recuerda guardar los cambios.");
@@ -879,7 +920,9 @@ export default function AdminPage() {
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <p className="text-xs font-black uppercase tracking-[0.14em] text-tecnova-red">{title}</p>
-                      <p className="mt-1 text-sm font-bold text-neutral-500">{loading ? "Cargando..." : `${total} registros relacionados`}</p>
+                      <p className="mt-1 text-sm font-bold text-neutral-500">
+                        {loading ? "Cargando..." : `${total} registros en total · mostrando ${shownFrom}-${shownTo} · pagina ${pagina} de ${totalPages}`}
+                      </p>
                     </div>
                     <form
                       onSubmit={(event) => {
@@ -937,6 +980,44 @@ export default function AdminPage() {
                         )}
                       </tbody>
                     </table>
+                  </div>
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-4">
+                    <div className="flex items-center gap-2 text-sm font-bold text-neutral-600">
+                      <span>Mostrar</span>
+                      <select
+                        value={limite}
+                        onChange={(event) => {
+                          setLimite(Number(event.target.value));
+                          setPagina(1);
+                        }}
+                        className="h-10 rounded-lg border border-neutral-200 bg-white px-3 text-sm font-black outline-none focus:border-tecnova-red"
+                        aria-label="Registros por pagina"
+                      >
+                        {[24, 50, 100].map((value) => (
+                          <option key={value} value={value}>{value}</option>
+                        ))}
+                      </select>
+                      <span>por pagina</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPagina((value) => Math.max(value - 1, 1))}
+                        disabled={loading || pagina <= 1}
+                        className="h-10 rounded-lg border border-neutral-200 bg-white px-4 text-sm font-black transition hover:border-tecnova-red hover:text-tecnova-red disabled:opacity-45"
+                      >
+                        Anterior
+                      </button>
+                      <span className="min-w-24 text-center text-sm font-black text-neutral-600">{pagina} / {totalPages}</span>
+                      <button
+                        type="button"
+                        onClick={() => setPagina((value) => Math.min(value + 1, totalPages))}
+                        disabled={loading || pagina >= totalPages}
+                        className="h-10 rounded-lg border border-neutral-200 bg-white px-4 text-sm font-black transition hover:border-tecnova-red hover:text-tecnova-red disabled:opacity-45"
+                      >
+                        Siguiente
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1384,10 +1465,10 @@ function ProductBackgroundPicker({
           <FieldLabel label="Fondo del producto" tooltip="Selecciona el ambiente visual del producto. Se guarda solo el nombre del archivo." />
           <p className="mt-1 text-xs font-semibold text-neutral-500">Los archivos se leen automaticamente desde public/Imagess.</p>
         </div>
-        <label htmlFor={inputId} className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-neutral-900 px-3 text-xs font-black text-white transition hover:bg-black">
+        <label htmlFor={inputId} aria-disabled={uploading} className={`inline-flex h-10 items-center gap-2 rounded-lg bg-neutral-900 px-3 text-xs font-black text-white transition hover:bg-black ${uploading ? "pointer-events-none opacity-70" : "cursor-pointer"}`}>
           {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} Subir nuevo fondo
         </label>
-        <input id={inputId} type="file" accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.avif,.svg" onChange={onUpload} className="sr-only" />
+        <input id={inputId} type="file" accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.avif,.svg" onChange={onUpload} disabled={uploading} className="sr-only" />
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">

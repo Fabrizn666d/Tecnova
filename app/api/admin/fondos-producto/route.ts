@@ -15,6 +15,7 @@ export async function GET() {
     response.headers.set("Cache-Control", "no-store");
     return response;
   } catch (error) {
+    console.error("[fondos-producto] error listando fondos", error);
     return fail(error instanceof Error ? error.message : "No se pudieron cargar los fondos.");
   }
 }
@@ -25,11 +26,17 @@ export async function POST(request: NextRequest) {
     const form = await request.formData();
     const file = form.get("file");
     if (!(file instanceof File)) return fail("Archivo no recibido.");
+    console.info("[fondos-producto] archivo recibido", {
+      name: file.name || "sin-nombre",
+      size: file.size,
+      mime: file.type || "sin-mime",
+    });
     const background = await saveBackgroundImage(file);
     const response = ok({ background }, { status: 201 });
     response.headers.set("Cache-Control", "no-store");
     return response;
   } catch (error) {
+    console.error("[fondos-producto] error subiendo fondo", error);
     return fail(error instanceof Error ? error.message : "No se pudo subir el fondo.");
   }
 }
@@ -44,6 +51,7 @@ export async function DELETE(request: NextRequest) {
     response.headers.set("Cache-Control", "no-store");
     return response;
   } catch (error) {
+    console.error("[fondos-producto] error eliminando fondo", error);
     return fail(error instanceof Error ? error.message : "No se pudo eliminar el fondo.");
   }
 }

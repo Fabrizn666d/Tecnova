@@ -44,6 +44,9 @@ export async function listBackgroundImages() {
 
 export async function saveBackgroundImage(file: File) {
   const maxBackgroundSize = getMaxBackgroundSize();
+  if (!file.size) {
+    throw new Error("El archivo de fondo esta vacio.");
+  }
   if (file.size > maxBackgroundSize) {
     throw new Error(`El fondo no debe superar ${Math.round(maxBackgroundSize / 1024 / 1024)}MB.`);
   }
@@ -69,7 +72,15 @@ export async function saveBackgroundImage(file: File) {
   const filename = `${base}-${randomUUID()}${extension}`;
   const buffer = Buffer.from(await file.arrayBuffer());
   const content = extension === ".svg" ? sanitizeSvg(buffer) : validateRaster(buffer, extension);
-  await writeFile(path.join(getBackgroundDir(), filename), content);
+  const finalPath = path.join(getBackgroundDir(), filename);
+  await writeFile(finalPath, content);
+  console.info("[fondos-producto] fondo guardado", {
+    originalName,
+    filename,
+    size: file.size,
+    mime: file.type || "sin-mime",
+    folder: getBackgroundDir(),
+  });
   return {
     filename,
     url: `/${backgroundFolderName}/${filename}`,
