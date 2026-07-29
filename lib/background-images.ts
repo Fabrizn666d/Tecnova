@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { mkdir, readdir, unlink, writeFile } from "fs/promises";
 import path from "path";
+import sharp from "sharp";
 import { prisma } from "@/lib/prisma";
 import { hasProductBackgroundImageColumn } from "@/lib/product-db";
 
@@ -74,7 +75,7 @@ export async function saveBackgroundImage(file: File) {
   const finalPath = path.join(finalDir, filename);
   const publicUrl = `/${backgroundFolderName}/${filename}`;
 
-  validateRaster(buffer, extension);
+  await validateRaster(buffer, extension);
   await mkdir(finalDir, { recursive: true });
   await writeFile(finalPath, buffer, { flag: "wx" });
 
@@ -133,15 +134,45 @@ function extensionForMime(mime: string) {
   return ".jpg";
 }
 
-function validateRaster(buffer: Buffer, extension: string) {
+async function validateRaster(buffer: Buffer, extension: string) {
+  console.log("[fondos-producto] buffer first 32 bytes", buffer.slice(0, 32));
+  const detected = await fileTypeFromBuffer(buffer);
+  console.log("[fondos-producto] fileTypeFromBuffer", detected);
+
   const signatures: Record<string, (value: Buffer) => boolean> = {
     ".jpg": (value) => value.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff])),
     ".png": (value) => value.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])),
     ".webp": (value) => value.subarray(0, 4).toString("ascii") === "RIFF" && value.subarray(8, 12).toString("ascii") === "WEBP",
   };
-  if (!signatures[extension]?.(buffer)) {
-    throw new Error("El contenido del archivo no corresponde a una imagen valida.");
+  if (signatures[extension]?.(buffer)) {
+    return;
   }
+
+  try {
+    const metadata = await sharp(buffer, { failOn: "none" }).metadata();
+    if (metadata.format && ["jpeg", "png", "webp"].includes(metadata.format)) {
+      console.log("[fondos-producto] sharp acepto imagen", metadata.format);
+      return;
+    }
+    console.log("[fondos-producto] sharp formato no permitido", metadata.format);
+  } catch (error) {
+    console.log("[fondos-producto] sharp error", error);
+  }
+
+  throw new Error("El contenido del archivo no corresponde a una imagen valida.");
+}
+
+async function fileTypeFromBuffer(buffer: Buffer) {
+  if (buffer.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]))) {
+    return { ext: "jpg", mime: "image/jpeg" };
+  }
+  if (buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) {
+    return { ext: "png", mime: "image/png" };
+  }
+  if (buffer.subarray(0, 4).toString("ascii") === "RIFF" && buffer.subarray(8, 12).toString("ascii") === "WEBP") {
+    return { ext: "webp", mime: "image/webp" };
+  }
+  return undefined;
 }
 
 function filenameToLabel(filename: string) {

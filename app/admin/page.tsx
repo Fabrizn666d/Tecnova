@@ -942,8 +942,8 @@ export default function AdminPage() {
         ) : active === "backups" ? (
           <BackupsPanel isSuperAdmin={isSuperAdmin} />
         ) : (
-          <div className={`grid gap-5 p-4 lg:p-8 ${active === "configuracion" ? "xl:grid-cols-[1fr]" : "xl:grid-cols-[1fr_460px]"}`}>
-            <section className="space-y-5">
+          <div className={`grid min-w-0 max-w-full gap-5 p-3 sm:p-4 lg:p-8 ${active === "configuracion" ? "xl:grid-cols-[1fr]" : "xl:grid-cols-[minmax(0,1fr)_minmax(360px,460px)]"}`}>
+            <section className="min-w-0 space-y-5">
               {active !== "configuracion" && (
                 <div className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-black/5">
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -1052,7 +1052,7 @@ export default function AdminPage() {
               )}
             </section>
 
-            <form onSubmit={save} className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-black/5 xl:sticky xl:top-24 xl:self-start">
+            <form onSubmit={save} className="min-w-0 max-w-full rounded-lg bg-white p-4 shadow-sm ring-1 ring-black/5 sm:p-5 xl:sticky xl:top-24 xl:self-start">
               <p className="text-xs font-black uppercase tracking-[0.16em] text-tecnova-red">Formulario</p>
               <h3 className="mt-2 text-2xl font-black tracking-[-0.04em]">
                 {activeResource && isRequestResource(activeResource)
@@ -1359,7 +1359,7 @@ function ProductForm({
   onDeleteBackground: (background: BackgroundOption) => void;
 }) {
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 max-w-full space-y-4">
       <TextField field="nombre" label="Nombre" tooltip="Nombre comercial visible para el cliente." value={selected.nombre} onChange={onChange} required />
       <label className="block text-sm font-bold">
         <FieldLabel label="Categoría" tooltip="Grupo donde aparecerá en el catálogo." />
@@ -1371,7 +1371,7 @@ function ProductForm({
         </select>
       </label>
       <TextField field="marca" label="Marca" tooltip="Marca del equipo o repuesto." value={selected.marca} onChange={onChange} />
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <TextField field="precio" label="Precio" tooltip="Precio actual. Déjalo vacío si se cotiza por WhatsApp." value={selected.precio} onChange={onChange} type="number" />
         <TextField field="precioAnterior" label="Precio anterior" tooltip="Precio tachado opcional para promociones." value={selected.precioAnterior} onChange={onChange} type="number" />
         <label className="block text-sm font-bold">
@@ -1506,13 +1506,13 @@ function ProductBackgroundPicker({
   }
 
   return (
-    <section className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
+    <section className="min-w-0 max-w-full rounded-lg border border-neutral-200 bg-neutral-50 p-3 sm:p-4">
+      <div className="grid gap-3 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <FieldLabel label="Fondo del producto" tooltip="Selecciona el ambiente visual del producto. Se guarda solo el nombre del archivo." />
           <p className="mt-1 text-xs font-semibold text-neutral-500">Los archivos se leen automaticamente desde public/Imagess.</p>
         </div>
-        <label htmlFor={inputId} aria-disabled={uploading} className={`inline-flex h-10 items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 text-xs font-black text-neutral-900 transition hover:border-tecnova-red hover:text-tecnova-red ${uploading ? "pointer-events-none opacity-70" : "cursor-pointer"}`}>
+        <label htmlFor={inputId} aria-disabled={uploading} className={`inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 text-xs font-black text-neutral-900 transition hover:border-tecnova-red hover:text-tecnova-red sm:w-auto ${uploading ? "pointer-events-none opacity-70" : "cursor-pointer"}`}>
           Seleccionar imagen
         </label>
         <input key={backgroundInputKey} id={inputId} type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" onChange={onSelectFile} disabled={uploading} className="sr-only" />
@@ -1520,7 +1520,7 @@ function ProductBackgroundPicker({
 
       <div className="mt-3 rounded-lg border border-dashed border-neutral-300 bg-white p-3">
         {backgroundFile ? (
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="grid gap-3 sm:flex sm:items-center sm:justify-between">
             <div className="min-w-0">
               <p className="truncate text-sm font-black">{backgroundFile.name}</p>
               <p className="mt-1 text-xs font-bold text-neutral-500">{backgroundFile.type || "sin tipo"} · {formatBytes(backgroundFile.size)}</p>
@@ -1529,7 +1529,7 @@ function ProductBackgroundPicker({
               type="button"
               onClick={onUpload}
               disabled={uploading}
-              className="inline-flex h-10 items-center gap-2 rounded-lg bg-neutral-900 px-4 text-xs font-black text-white transition hover:bg-black disabled:opacity-60"
+              className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-neutral-900 px-4 text-xs font-black text-white transition hover:bg-black disabled:opacity-60 sm:w-auto"
             >
               {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} Subir fondo
             </button>
@@ -1539,7 +1539,7 @@ function ProductBackgroundPicker({
         )}
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {backgrounds.map((background) => {
           const active = background.filename === selected;
           return (
@@ -1580,16 +1580,16 @@ function ProductBackgroundPicker({
       </div>
 
       <div className="mt-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="grid gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
           <p className="text-xs font-black uppercase tracking-[0.14em] text-neutral-500">Editor visual</p>
-          <div className="flex gap-2">
-            <button type="button" onClick={() => { onChange("imagePositionX", 50); onChange("imagePositionY", 55); }} className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-black hover:border-tecnova-red hover:text-tecnova-red">Centrar</button>
-            <button type="button" onClick={() => { onChange("imageScale", 0.9); onChange("imagePositionX", 50); onChange("imagePositionY", 55); }} className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-black hover:border-tecnova-red hover:text-tecnova-red">Ajustar</button>
-            <button type="button" onClick={() => { onChange("imageScale", 1); onChange("imagePositionX", 50); onChange("imagePositionY", 55); }} className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-black hover:border-tecnova-red hover:text-tecnova-red">Restablecer</button>
+          <div className="grid grid-cols-1 gap-2 sm:flex">
+            <button type="button" onClick={() => { onChange("imagePositionX", 50); onChange("imagePositionY", 55); }} className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-black hover:border-tecnova-red hover:text-tecnova-red sm:w-auto">Centrar</button>
+            <button type="button" onClick={() => { onChange("imageScale", 0.9); onChange("imagePositionX", 50); onChange("imagePositionY", 55); }} className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-black hover:border-tecnova-red hover:text-tecnova-red sm:w-auto">Ajustar</button>
+            <button type="button" onClick={() => { onChange("imageScale", 1); onChange("imagePositionX", 50); onChange("imagePositionY", 55); }} className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-black hover:border-tecnova-red hover:text-tecnova-red sm:w-auto">Restablecer</button>
           </div>
         </div>
         <div
-          className="relative mt-2 aspect-square cursor-grab touch-none overflow-hidden rounded-lg border border-neutral-200 active:cursor-grabbing"
+          className="relative mt-2 aspect-square w-full max-w-full cursor-grab touch-none overflow-hidden rounded-lg border border-neutral-200 active:cursor-grabbing"
           onWheel={(event) => {
             event.preventDefault();
             setImageValue("imageScale", imageScale + (event.deltaY < 0 ? 0.04 : -0.04));
@@ -1616,7 +1616,7 @@ function ProductBackgroundPicker({
             </div>
           )}
         </div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
           <RangeControl label="Escala" value={imageScale} min={0.4} max={2.5} step={0.01} onChange={(value) => setImageValue("imageScale", value)} />
           <RangeControl label="Posicion X" value={imagePositionX} min={0} max={100} step={0.1} onChange={(value) => setImageValue("imagePositionX", value)} />
           <RangeControl label="Posicion Y" value={imagePositionY} min={0} max={100} step={0.1} onChange={(value) => setImageValue("imagePositionY", value)} />
@@ -1873,12 +1873,12 @@ function TextField({
   required?: boolean;
 }) {
   return (
-    <label className="block text-sm font-bold">
+    <label className="block min-w-0 max-w-full text-sm font-bold">
       <FieldLabel label={label} tooltip={tooltip} />
       {textarea ? (
-        <textarea value={String(value ?? "")} required={required} onChange={(event) => onChange(field, event.target.value)} className="mt-2 min-h-24 w-full rounded-lg border border-neutral-200 px-4 py-3 outline-none focus:border-tecnova-red" />
+        <textarea value={String(value ?? "")} required={required} onChange={(event) => onChange(field, event.target.value)} className="mt-2 min-h-24 w-full max-w-full rounded-lg border border-neutral-200 px-4 py-3 outline-none focus:border-tecnova-red" />
       ) : (
-        <input value={String(value ?? "")} required={required} onChange={(event) => onChange(field, event.target.value)} type={type} className="mt-2 h-11 w-full rounded-lg border border-neutral-200 px-4 outline-none focus:border-tecnova-red" />
+        <input value={String(value ?? "")} required={required} onChange={(event) => onChange(field, event.target.value)} type={type} className="mt-2 h-11 w-full max-w-full rounded-lg border border-neutral-200 px-4 outline-none focus:border-tecnova-red" />
       )}
     </label>
   );
@@ -1898,7 +1898,7 @@ function ToggleField({
   onChange: (field: string, value: unknown) => void;
 }) {
   return (
-    <label className="flex items-center justify-between gap-4 rounded-lg border border-neutral-200 px-4 py-3 text-sm font-bold">
+    <label className="flex min-w-0 max-w-full items-center justify-between gap-4 rounded-lg border border-neutral-200 px-4 py-3 text-sm font-bold">
       <FieldLabel label={label} tooltip={tooltip} />
       <input type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(field, event.target.checked)} />
     </label>
@@ -1926,7 +1926,7 @@ function UploadField({
   const image = preview || firstImageUrl(value);
 
   return (
-    <div className="block text-sm font-bold">
+    <div className="block min-w-0 max-w-full text-sm font-bold">
       <FieldLabel label={label} tooltip={tooltip} />
       {image ? (
         <div className="mt-2 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50">
@@ -1938,9 +1938,9 @@ function UploadField({
           Sin imagen cargada
         </div>
       )}
-      <div className="mt-2 flex gap-2">
+      <div className="mt-2 grid gap-2 sm:flex">
         <input value={String(value ?? "")} onChange={() => null} readOnly className="h-11 min-w-0 flex-1 rounded-lg border border-neutral-200 px-4 text-xs outline-none" />
-        <label htmlFor={inputId} className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-lg bg-neutral-100 px-3 text-xs font-black transition hover:bg-neutral-200">
+        <label htmlFor={inputId} className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-neutral-100 px-3 text-xs font-black transition hover:bg-neutral-200 sm:w-auto">
           {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} Subir
         </label>
         <input id={inputId} type="file" accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.avif,.svg" onChange={(event) => onUpload(event, field)} className="sr-only" />
@@ -2130,7 +2130,7 @@ function GalleryField({
   }
 
   return (
-    <div className="block text-sm font-bold">
+    <div className="block min-w-0 max-w-full text-sm font-bold">
       <FieldLabel label={label} tooltip={tooltip} />
       <div className="mt-2 grid gap-3">
         {images.length > 0 ? (
@@ -2152,7 +2152,7 @@ function GalleryField({
             Sin imagenes cargadas
           </div>
         )}
-        <label htmlFor={inputId} className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-neutral-100 px-3 text-xs font-black transition hover:bg-neutral-200">
+        <label htmlFor={inputId} className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-neutral-100 px-3 text-xs font-black transition hover:bg-neutral-200 sm:w-auto">
           {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} Subir imagenes
         </label>
         <input id={inputId} type="file" multiple accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.avif,.svg" onChange={(event) => onUpload(event, field)} className="sr-only" />
