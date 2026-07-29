@@ -70,6 +70,7 @@ type BackupItem = {
 
 type BackgroundOption = {
   filename: string;
+  name?: string;
   url: string;
   label: string;
   usageCount?: number;
@@ -404,7 +405,7 @@ export default function AdminPage() {
     try {
       const response = await fetch("/api/admin/fondos-producto", { cache: "no-store" });
       const payload = await safeJson(response);
-      if (response.ok && payload.ok) setBackgrounds(payload.data?.backgrounds || payload.data?.items || []);
+      if (response.ok && payload.ok) setBackgrounds((payload.data?.backgrounds || payload.data?.items || []).map(normalizeBackgroundOption));
     } catch {
       setBackgrounds([]);
     }
@@ -1542,27 +1543,37 @@ function ProductBackgroundPicker({
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {backgrounds.map((background) => {
           const active = background.filename === selected;
+          const backgroundName = background.name || background.filename;
           return (
             <div
               key={background.filename}
               className={`overflow-hidden rounded-lg border bg-white text-left transition ${active ? "border-tecnova-red ring-2 ring-tecnova-red" : "border-neutral-200 hover:border-neutral-400"}`}
-              title={background.filename}
+              title={backgroundName}
             >
               <button type="button" onClick={() => onSelect(background.filename)} className="block w-full text-left">
                 <span className="relative block aspect-square">
                   {/* eslint-disable-next-line @next/next/no-img-element -- Admin previews read dynamic files from public/Imagess. */}
-                  <img src={background.url} alt={background.label} className="h-full w-full object-cover object-center" />
+                  <img
+                    src={background.url}
+                    alt={backgroundName}
+                    className="h-full w-full object-cover object-center"
+                    onError={() => {
+                      console.error("Error cargando fondo", background);
+                    }}
+                  />
                 </span>
               </button>
-              <div className="flex items-center justify-between gap-2 px-3 py-2">
-                <button type="button" onClick={() => onSelect(background.filename)} className="min-w-0 truncate text-left text-xs font-black">
-                  {background.label}
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 px-3 py-2">
+                <button type="button" onClick={() => onSelect(background.filename)} className="min-w-0 text-left">
+                  <span title={backgroundName} className="line-clamp-2 break-all text-xs font-medium leading-4 text-neutral-800">
+                    {backgroundName}
+                  </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => onDelete(background)}
                   className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-neutral-500 hover:bg-red-50 hover:text-tecnova-red"
-                  aria-label={`Eliminar ${background.label}`}
+                  aria-label={`Eliminar ${backgroundName}`}
                   title={background.usageCount ? `${background.usageCount} producto(s) lo usan` : "Eliminar fondo"}
                   disabled={deletingFilename === background.filename}
                 >
@@ -2269,6 +2280,18 @@ function preparePayload(resource: ResourceKey, selected: Record<string, unknown>
 function numberValue(value: unknown, fallback: number) {
   const number = Number(value);
   return Number.isFinite(number) ? number : fallback;
+}
+
+function normalizeBackgroundOption(background: Record<string, unknown>): BackgroundOption {
+  const name = String(background.name || background.filename || "");
+  return {
+    ...background,
+    filename: name,
+    name,
+    url: String(background.url || (name ? `/Imagess/${encodeURIComponent(name)}` : "")),
+    label: String(background.label || name),
+    usageCount: Number(background.usageCount || 0),
+  };
 }
 
 function clampNumber(value: number, min: number, max: number) {

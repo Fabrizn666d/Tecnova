@@ -28,7 +28,7 @@ export async function listBackgroundImages() {
     .map((entry) => ({
       filename: entry.name,
       name: entry.name,
-      url: `/${backgroundFolderName}/${entry.name}`,
+      url: publicBackgroundUrl(entry.name),
       label: filenameToLabel(entry.name),
     }))
     .sort((a, b) => a.label.localeCompare(b.label, "es"));
@@ -73,7 +73,7 @@ export async function saveBackgroundImage(file: File) {
   const filename = `fondo-${randomUUID()}${extension}`;
   const finalDir = getBackgroundDir();
   const finalPath = path.join(finalDir, filename);
-  const publicUrl = `/${backgroundFolderName}/${filename}`;
+  const publicUrl = publicBackgroundUrl(filename);
 
   await validateRaster(buffer, extension);
   await mkdir(finalDir, { recursive: true });
@@ -132,6 +132,10 @@ function extensionForMime(mime: string) {
   if (mime === "image/png") return ".png";
   if (mime === "image/webp") return ".webp";
   return ".jpg";
+}
+
+function publicBackgroundUrl(name: string) {
+  return `/${backgroundFolderName}/${encodeURIComponent(name)}`;
 }
 
 async function validateRaster(buffer: Buffer, extension: string) {

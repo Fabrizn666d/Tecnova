@@ -37,11 +37,16 @@ export async function POST(request: NextRequest) {
     const response = Response.json(
       {
         ok: true,
-        data: { background, item: background, name: background.name, url: background.url },
-        background,
-        item: background,
         name: background.name,
         url: background.url,
+        data: {
+          name: background.name,
+          url: background.url,
+          background,
+          item: background,
+        },
+        background,
+        item: background,
       },
       { status: 201 }
     );
