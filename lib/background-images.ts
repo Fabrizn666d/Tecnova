@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { mkdir, readdir, unlink, writeFile } from "fs/promises";
+import { mkdir, readFile, readdir, stat, unlink, writeFile } from "fs/promises";
 import path from "path";
 import sharp from "sharp";
 import { prisma } from "@/lib/prisma";
@@ -10,6 +10,15 @@ export const backgroundFolderName = "Imagess";
 const allowedListExtensions = new Set([".jpg", ".jpeg", ".png", ".webp", ".avif", ".gif", ".svg"]);
 const allowedUploadMime = new Set(["image/jpeg", "image/png", "image/webp"]);
 const defaultMaxBackgroundSize = 15 * 1024 * 1024;
+
+export type BackgroundImageItem = {
+  filename: string;
+  name: string;
+  url: string;
+  label: string;
+  usageCount?: number;
+  bytes?: number;
+};
 
 export function getBackgroundDir() {
   return path.join(process.cwd(), "public", backgroundFolderName);
@@ -25,12 +34,7 @@ export async function listBackgroundImages() {
   const entries = await readdir(getBackgroundDir(), { withFileTypes: true });
   const backgrounds = entries
     .filter((entry) => entry.isFile() && isAllowedBackgroundFilename(entry.name))
-    .map((entry) => ({
-      filename: entry.name,
-      name: entry.name,
-      url: publicBackgroundUrl(entry.name),
-      label: filenameToLabel(entry.name),
-    }))
+    .map((entry) => createBackgroundItem(entry.name))
     .sort((a, b) => a.label.localeCompare(b.label, "es"));
 
   if (!(await hasProductBackgroundImageColumn())) {
@@ -70,28 +74,34 @@ export async function saveBackgroundImage(file: File) {
   }
 
   const extension = extensionForMime(mime);
-  const filename = `fondo-${randomUUID()}${extension}`;
+  const finalName = `fondo-${randomUUID()}${extension}`;
   const finalDir = getBackgroundDir();
-  const finalPath = path.join(finalDir, filename);
-  const publicUrl = publicBackgroundUrl(filename);
+  const absolutePath = path.join(finalDir, finalName);
+  const item = createBackgroundItem(finalName);
 
   await validateRaster(buffer, extension);
   await mkdir(finalDir, { recursive: true });
-  await writeFile(finalPath, buffer, { flag: "wx" });
+  await writeFile(absolutePath, buffer, { flag: "wx" });
+
+  const existsAfterWrite = await stat(absolutePath).then(() => true).catch(() => false);
+  const savedBytes = await readFile(absolutePath);
+  const bytesMatch = savedBytes.length === buffer.length;
 
   console.info("[fondos-producto] fondo guardado", {
-    finalPath,
-    bytes: buffer.length,
-    publicUrl,
+    finalName,
+    absolutePath,
+    publicUrl: item.url,
+    existsAfterWrite,
+    bytesWritten: buffer.length,
+    savedBytes: savedBytes.length,
+    bytesMatch,
   });
 
-  return {
-    filename,
-    name: filename,
-    url: publicUrl,
-    label: filenameToLabel(filename),
-    bytes: buffer.length,
-  };
+  if (!existsAfterWrite || !bytesMatch) {
+    throw new Error("El fondo se escribio, pero la verificacion del archivo fallo.");
+  }
+
+  return { ...item, bytes: buffer.length };
 }
 
 export async function deleteBackgroundImage(filenameOrUrl: string, force = false) {
@@ -136,6 +146,15 @@ function extensionForMime(mime: string) {
 
 function publicBackgroundUrl(name: string) {
   return `/${backgroundFolderName}/${encodeURIComponent(name)}`;
+}
+
+export function createBackgroundItem(finalName: string): BackgroundImageItem {
+  return {
+    filename: finalName,
+    name: finalName,
+    url: publicBackgroundUrl(finalName),
+    label: filenameToLabel(finalName),
+  };
 }
 
 async function validateRaster(buffer: Buffer, extension: string) {

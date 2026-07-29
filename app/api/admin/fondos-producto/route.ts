@@ -1,7 +1,9 @@
 import { requireAdmin } from "@/lib/auth";
-import { deleteBackgroundImage, listBackgroundImages, saveBackgroundImage } from "@/lib/background-images";
+import { deleteBackgroundImage, getBackgroundDir, listBackgroundImages, saveBackgroundImage } from "@/lib/background-images";
 import { fail } from "@/lib/http";
 import type { NextRequest } from "next/server";
+import { stat } from "fs/promises";
+import path from "path";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,6 +36,16 @@ export async function POST(request: NextRequest) {
       cwd: process.cwd(),
     });
     const background = await saveBackgroundImage(file);
+    const responseUrl = background.url;
+    const responseName = path.basename(decodeURIComponent(responseUrl.split("?")[0]));
+    const responsePath = path.join(getBackgroundDir(), responseName);
+    const responseUrlFileExists = await stat(responsePath).then(() => true).catch(() => false);
+    console.info("[fondos-producto] respuesta POST verificada", {
+      responseUrl,
+      responseName,
+      responsePath,
+      responseUrlFileExists,
+    });
     const response = Response.json(
       {
         ok: true,
